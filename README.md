@@ -1,4 +1,4 @@
-# RAG Engine
+# Reusable RAG Engine
 
 A modular Retrieval-Augmented Generation (RAG) engine designed to power question-answering services across multiple, independent knowledge bases.
 
