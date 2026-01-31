@@ -15,15 +15,16 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+            python-version: "3.11"
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+            python -m pip install --upgrade pip
+            pip install -r requirements.txt
 
       - name: Run tests
         run: |
-          pytest
+            pytest
 
       - name: Set up Fly CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
