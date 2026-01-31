@@ -1,0 +1,36 @@
+# flyctl launch added from .gitignore
+# Documentation
+**/documentation
+**/plan.md
+
+# Python
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.egg-info
+**/.pytest_cache
+
+# Virtual environments
+**/.venv-*
+**/venv
+**/env
+**/ENV
+
+# Environment variables
+**/.env
+**/.env.local
+
+# IDE
+**/.vscode
+**/.idea
+
+# OS
+**/.DS_Store
+
+# Logs
+**/*.log
+
+# flyctl launch added from .venv/.gitignore
+# Created by venv; see https://docs.python.org/3/library/venv.html
+.venv/**/*
+fly.toml
