@@ -6,6 +6,7 @@ APP_NAME = os.getenv("APP_NAME", "rag-engine")
 APP_ENV = os.getenv("APP_ENV", "development")
 APP_VERSION = os.getenv("APP_VERSION", "0.2.0")
 
+
 app = FastAPI(
     title=APP_NAME,
     version=APP_VERSION,
@@ -26,3 +27,10 @@ def health_check():
         "env": APP_ENV,
         "version": APP_VERSION,
     }
+
+
+# Insecure test code - do not use in production
+
+
+def unsafe():
+    eval("print('hello')")

@@ -1,5 +1,24 @@
 repos:
+  # Secret scanning
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.18.1
     hooks:
       - id: gitleaks
+  
+  # Security linting
+  - repo: https://github.com/PyCQA/bandit
+    rev: '1.7.9'
+    hooks:
+      - id: bandit
+        args: ['-r', 'src/', '--severity-level', 'high']
+        additional_dependencies: ['bandit[toml]']
+        language_version: python3.11
+        pass_filenames: false  # Don't pass individual files, we're using -r
+  
+  # Code quality and formatting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.6
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format

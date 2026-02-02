@@ -1,3 +1,10 @@
+# Python's standard configuration file that centralizes all project settings
+# in one place instead of scattered config files. 
+
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["src/tests"]
+
+[tool.bandit]
+exclude_dirs = ["/src/tests", "/.venv", "/__pycache__"]
+skips = ["B101"]  # Allow assert statements in tests
