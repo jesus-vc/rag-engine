@@ -1,0 +1,46 @@
+name: Security Checks
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  security-scan:
+    name: Security Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for gitleaks
+      
+      # Secret scanning (no Python needed)
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      # Python-based security tools
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+      
+      - name: Run Bandit security scan
+        run: bandit -r src/ -f json -o bandit-report.json
+        continue-on-error: true
+      
+      - name: Run Safety dependency check
+        run: safety check --json
+        continue-on-error: true
+      
+      - name: Run Ruff linter
+        run: ruff check src/
