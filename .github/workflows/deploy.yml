@@ -36,6 +36,24 @@ jobs:
       - name: Run Safety
         run: safety check
       
+      - name: Run pip-audit
+        run: pip-audit
+      
+      - name: Run OWASP Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'rag-engine'
+          path: '.'
+          format: 'HTML'
+          args: >
+            --enableRetired
+      
+      - name: Upload OWASP Dependency-Check report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: reports
+      
       - name: Run Ruff
         run: ruff check src/
 
