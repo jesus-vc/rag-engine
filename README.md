@@ -15,6 +15,8 @@ A modular Retrieval-Augmented Generation (RAG) engine designed to power question
 - Command: `gitleaks detect --source .` scans using built-in default rules
 - Optional: Use `--config .gitleaks.toml` for custom allowlists and rules
 
+**Husky + Playwright** *(planned)* - Automated security testing framework for pre-commit hooks. Would execute Playwright-based security tests locally before commits, ensuring security checks run even before code reaches the repository.
+
 ![Gitleaks Pre-commit Scan Example](images/gitleaks-precommit-scan.png)
 
 ### 2. Pre-push (GitHub)
@@ -26,45 +28,39 @@ A modular Retrieval-Augmented Generation (RAG) engine designed to power question
 ![GitHub Push Protection Example](images/github-push-protection.png)
 
 ### 3. Post-push (GitHub Actions)
+
+**Pull Request Security Checks** ([security.yml](.github/workflows/security.yml))
+Runs comprehensive security analysis on all pull requests before merging:
 - **GitLeaks GitHub Action** - Scans commits in pull requests and pushes to main
+- **Bandit** - Python SAST for security vulnerabilities
+- **pip-audit** - Python package vulnerability auditing via OSV database.
+- **OWASP Dependency-Check** - Software Composition Analysis (SCA) for CVEs. Analyzes dependencies and compile report of well-known, publicly disclosed vulnerabilities. Report contains any Common Platform Enumeration (CPE) identifiers that are found for a given dependency.
+- **Ruff** - Fast Python linter
 - **CodeQL** *(planned)* - Static code analysis for security vulnerabilities
 
----
+### 4. Build Stage *(planned)*
+**SBOM Generation & Vulnerability Scanning**
+- **Syft** - Cloud-native SBOM generator that produces a comprehensive Software Bill of Materials listing all packages, versions, licenses, and hashes. Supports industry standards (CycloneDX & SPDX) and would be integrated in GitHub Actions during the build stage. Enables security and compliance teams to track exactly what's shipped in each release, making it trivial to identify affected systems during zero-day vulnerability disclosures.
+- **Grype** - SBOM-based vulnerability scanner that consumes Syft-generated SBOMs to detect CVEs in built artifacts and container images. Deployed in the build pipeline after SBOM generation, it scans what's actually being shipped (not just source code), catching vulnerabilities in transitive dependencies and compiled artifacts. This build → generate SBOM → scan SBOM → deploy workflow represents industry best practice for AppSec.
+- **Trivy** - All-in-one container security scanner for containerized deployments. Scans Docker images for vulnerabilities, misconfigurations, and secrets before pushing to registries. Would run in CI/CD pipeline during container build stage to prevent vulnerable images from reaching production.
 
-## Roadmap: Future Security Enhancements
-- Husky hooks with Playwright for automated security tests before commits and pushes 
-- Source Stage
-- Build Stage
-- Release State
+### 5. Test Stage *(planned)*
+**Dynamic Application Security Testing (DAST)**
+- Runtime security testing to scan running applications and APIs for vulnerabilities that only manifest during execution, such as authentication flaws, injection vulnerabilities, and insecure configurations.
+- **OWASP ZAP** *(planned)* - Containerized lightweight DAST scanner that runs automated security scans against the staging environment after PR merge and deployment. Tests the running application in a production-mirror environment to detect runtime vulnerabilities like XSS, SQL injection, authentication bypasses, and insecure configurations before production release.
 
-### 2 Types of Static Code Analysis (SCA)
-    - Software Composition Analysis (SCA)
-        - scann libraries (Software of Unknown Provenance).
-    - Static Application Security Testing (SAST)
-        - scans for coding errors. 
+### 6. Release Stage
+**Deployment Security Gate** ([deploy.yml](.github/workflows/deploy.yml))
 
-    - You want to run Static Code Analysis during Dev, Soruce, and Build stages. 
-    
-### Dev IDE Stage
-    - IDE add-ons for Static Code Analysis
-    - Secret Scanner
-    - Pre-commit hooks
-        - Secret scanning, linting
-### Source Stage
-    - Github Actions running Static Code Analysis, to detect new vulnerabilites.
-### Build Stage
-    - Static Code Analysis 
-    - Software Bill of Materials (SBOM). Generating a list of all 3rd-party library versions in repository during build. Store SBOM (e.g. in S3 bucket) to quickly scan critical, zero-day vulnerabilities.
-    - Software Composition Analysis can be performed on SBOM.
-    - Note: New artifacts are created and derived outputs such as: /dist with minified JS/CSS derived from React code, Docker images derived from source code and Dockerfile, Java app.jar file derived from .java files.
-### Test Stage
-    - Dynamic App. Security Testing (DAST) to scan running applications and APIs.
-### Release Stage
-    - Scanning container images
-    - Vulnerability scanning
-### Reporting
-    - Leverage scan results, SBOM
-    - SLSA ("salsa")
-        - framework to protect the integrity of the software supply chain.
-        - Signed provenance. Cryptographically prove how an artifact was built, including the source, build system, and steps involved. It prevents tampering in the CI/CD pipeline, enables supply-chain trust, and allows us to enforce deployment policies so only verified, compliant artifacts reach production.
-        - Protects agains build pipeline attacks such as someone building artifacts locally and sneaking them into prod, a compromised CI runner, malicious dependency injected at build time. Tools such as GitHub actions can generate provenance JSON. 
+Re-runs all security checks on direct pushes to main before deployment as a final safety net. Deployment only proceeds if all security checks pass, preventing vulnerable code from reaching production.
+
+**Container & Artifact Security** *(planned)*
+- Container image scanning and artifact verification to ensure only secure, verified builds reach production environments.
+
+**Runtime Threat Detection** *(planned)*
+- **Falco** - CNCF-graduated eBPF-based runtime security monitoring for containerized applications. Detects active exploitation attempts and suspicious behavior in running containers that static analysis cannot catch, including reverse shells, privilege escalation, crypto mining, unauthorized file access, and container escape attempts. Deployed as a DaemonSet in production Kubernetes clusters or sidecar container, it monitors kernel-level events in real-time with minimal overhead. Alerts integrate with logging/monitoring stacks (Slack, PagerDuty, CloudWatch) to enable immediate incident response when runtime attacks occur.
+
+### 7. Supply Chain Security *(planned)*
+**SLSA Framework Implementation**
+- **SLSA (Supply-chain Levels for Software Artifacts)** - Framework to protect the integrity of the software supply chain through signed provenance. Cryptographically proves how an artifact was built, including the source, build system, and steps involved. Prevents tampering in the CI/CD pipeline, enables supply-chain trust, and enforces deployment policies so only verified, compliant artifacts reach production.
+- Protects against build pipeline attacks such as locally-built artifacts bypassing CI/CD, compromised CI runners, and malicious dependencies injected at build time. GitHub Actions can generate provenance JSON for verification. 

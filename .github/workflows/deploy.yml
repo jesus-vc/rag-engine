@@ -31,12 +31,38 @@ jobs:
           pip install -r requirements-dev.txt
       
       - name: Run Bandit
-        run: bandit -r src/ --severity-level medium
+        run: bandit -r src/ --severity-level medium -f json -o bandit-report.json
       
-      - name: Run Safety
-        run: safety check
+      - name: Upload Bandit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit-report.json
+      
+      - name: Run pip-audit
+        if: always()
+        run: pip-audit --desc
+      
+      - name: Run OWASP Dependency-Check
+        if: always()
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'rag-engine'
+          path: '.'
+          format: 'HTML'
+          args: >
+            --enableRetired
+      
+      - name: Upload OWASP Dependency-Check report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: reports
       
       - name: Run Ruff
+        if: always()
         run: ruff check src/
 
   # Only deploy if security checks pass
