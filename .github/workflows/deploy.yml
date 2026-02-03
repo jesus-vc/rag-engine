@@ -31,13 +31,17 @@ jobs:
           pip install -r requirements-dev.txt
       
       - name: Run Bandit
-        run: bandit -r src/ --severity-level medium
+        run: bandit -r src/ --severity-level medium -f json -o bandit-report.json
       
-      - name: Run Safety
-        run: safety check
+      - name: Upload Bandit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit-report.json
       
       - name: Run pip-audit
-        run: pip-audit
+        run: pip-audit --desc
       
       - name: Run OWASP Dependency-Check
         uses: dependency-check/Dependency-Check_Action@main
@@ -49,6 +53,7 @@ jobs:
             --enableRetired
       
       - name: Upload OWASP Dependency-Check report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: dependency-check-report

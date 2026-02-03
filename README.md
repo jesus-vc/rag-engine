@@ -26,8 +26,18 @@ A modular Retrieval-Augmented Generation (RAG) engine designed to power question
 ![GitHub Push Protection Example](images/github-push-protection.png)
 
 ### 3. Post-push (GitHub Actions)
+
+**Pull Request Security Checks** ([security.yml](.github/workflows/security.yml))
+Runs comprehensive security analysis on all pull requests before merging:
 - **GitLeaks GitHub Action** - Scans commits in pull requests and pushes to main
+- **Bandit** - Python SAST for security vulnerabilities
+- **pip-audit** - Python package vulnerability auditing via OSV database
+- **OWASP Dependency-Check** - Software Composition Analysis (SCA) for CVEs
+- **Ruff** - Fast Python linter
 - **CodeQL** *(planned)* - Static code analysis for security vulnerabilities
+
+**Deployment Security Gate** ([deploy.yml](.github/workflows/deploy.yml))
+Re-runs all security checks on direct pushes to main before deployment as a safety net. Deployment only proceeds if all security checks pass.
 
 ---
 

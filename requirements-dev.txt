@@ -1,6 +1,5 @@
 # Development and CI tools
 bandit>=1.7.5
-safety>=2.3.5
 pip-audit>=2.10.0
 ruff>=0.1.6
 pre-commit>=3.5.0
