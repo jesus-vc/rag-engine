@@ -32,11 +32,11 @@ A modular Retrieval-Augmented Generation (RAG) engine designed to power question
 **Pull Request Security Checks** ([security.yml](.github/workflows/security.yml))
 Runs comprehensive security analysis on all pull requests before merging:
 - **GitLeaks GitHub Action** - Scans commits in pull requests and pushes to main
-- **Bandit** - Python SAST for security vulnerabilities
-- **pip-audit** - Python package vulnerability auditing via OSV database.
-- **OWASP Dependency-Check** - Software Composition Analysis (SCA) for CVEs. Analyzes dependencies and compile report of well-known, publicly disclosed vulnerabilities. Report contains any Common Platform Enumeration (CPE) identifiers that are found for a given dependency.
+- **Bandit** - Python SAST (Static Application Security Testing) that analyzes source code for security anti-patterns and coding errors. Detects issues like hardcoded passwords, SQL injection vulnerabilities, insecure cryptographic functions, and unsafe deserialization in YOUR CODE. Complements dependency scanners by finding vulnerabilities in code you write, not just third-party libraries.
+- **pip-audit** - Python package vulnerability auditing via OSV database. Scans YOUR DEPENDENCIES for known CVEs in installed packages.
+- **OWASP Dependency-Check** - Software Composition Analysis (SCA) for CVEs. Analyzes YOUR DEPENDENCIES and compiles report of well-known, publicly disclosed vulnerabilities. Covers broader ecosystems beyond just Python (includes transitive dependencies). Reports include Common Platform Enumeration (CPE) identifiers.
 - **Ruff** - Fast Python linter
-- **CodeQL** *(planned)* - Static code analysis for security vulnerabilities
+- **CodeQL** *(planned)* - Advanced semantic SAST using data flow analysis to find complex vulnerabilities Bandit might miss. While Bandit uses pattern matching for common anti-patterns (fast, catches 80% of issues), CodeQL performs deeper analysis by tracking how data flows through your code—detecting multi-step vulnerabilities like tainted data flowing from user input through multiple functions to a SQL query. Native GitHub integration provides automated security advisories and is free for public repositories. Complements Bandit with enterprise-grade vulnerability detection.
 
 ### 4. Build Stage *(planned)*
 **SBOM Generation & Vulnerability Scanning**
