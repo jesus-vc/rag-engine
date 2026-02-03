@@ -46,9 +46,11 @@ jobs:
           path: bandit-report.json
       
       - name: Run pip-audit
+        if: always()
         run: pip-audit --desc
       
       - name: Run OWASP Dependency-Check
+        if: always()
         uses: dependency-check/Dependency-Check_Action@main
         with:
           project: 'rag-engine'
@@ -65,4 +67,5 @@ jobs:
           path: reports
       
       - name: Run Ruff linter
+        if: always()
         run: ruff check src/
