@@ -1,0 +1,81 @@
+# ==============================================================================
+# Semgrep Custom Security Rules - Command Injection Detection
+# ==============================================================================
+#
+# WHAT IS SEMGREP?
+# Semgrep is a fast, open-source static analysis tool that finds bugs and 
+# security vulnerabilities using pattern matching on Abstract Syntax Trees (AST).
+# Unlike simple regex-based tools, it understands code structure.
+#
+# WHY SEMGREP FOR THIS POC?
+# - Taint analysis: Tracks data flow from user input (sources) to dangerous 
+#   functions (sinks) to identify exploitable code paths
+# - Fast: Runs in seconds, suitable for pre-commit hooks and CI/CD
+# - Customizable: Write rules specific to your framework/codebase
+# - Language-aware: Understands Python syntax, not just text patterns
+#
+# TAINT MODE EXPLAINED:
+# This rule uses "taint mode" which tracks how untrusted data flows through code:
+# 1. SOURCE: Where untrusted data enters (e.g., request.args.get)
+# 2. SINK: Dangerous function that could execute that data (e.g., os.popen)
+# 3. VULNERABILITY: When a SOURCE flows to a SINK without sanitization
+#
+# RULE LOGIC:
+# IF user_input (request.args/form) → command_execution (os.popen/system)
+# THEN flag as command injection vulnerability
+#
+# This catches the exploit chain even if the data passes through multiple 
+# variables or functions before reaching the sink.
+#
+# METADATA PURPOSE:
+# - category/subcategory: Organize findings by type
+# - exploitability: Indicates how likely real-world exploitation is
+# - internet_exposed: Signals if endpoint is publicly accessible
+# - cwe/owasp: Maps to industry-standard vulnerability classifications
+# - confidence: How certain we are this is a true positive (vs false alarm)
+#
+# These metadata fields enable:
+# - Risk scoring and prioritization
+# - Filtering/grouping in security dashboards
+# - Compliance reporting (OWASP, CWE mappings)
+# - Correlation with other tool findings (Trivy, container scans)
+#
+# ==============================================================================
+
+rules:
+  - id: python-command-injection-reachable
+  # Use taint analysis mode which tracks the flow of untrusted, user-controlled data.
+    mode: taint 
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.form.get(...)
+    pattern-sinks:
+      - pattern: os.popen(...)
+      - pattern: os.system(...)
+      - pattern: subprocess.call(...)
+    message: |
+      User input reaches command execution - CRITICAL RISK
+      User-controlled data flows directly to shell command execution.
+      This is exploitable for Remote Code Execution (RCE).
+      
+      OWASP Top 10 Mappings:
+      - A03:2021 Injection (Command Injection)
+      - A01:2021 Broken Access Control (No authentication)
+      - A09:2021 Security Logging Failures (No input validation logging)
+    severity: ERROR
+    languages:
+      - python
+    metadata:
+      category: security
+      subcategory: command-injection
+      exploitability: high
+      internet_exposed: true
+      cwe: "CWE-78: OS Command Injection"
+      owasp:
+        - "A03:2021 - Injection"
+        - "A01:2021 - Broken Access Control"
+        - "A09:2021 - Security Logging and Monitoring Failures"
+      references:
+        - "https://owasp.org/Top10/A03_2021-Injection/"
+        - "https://cwe.mitre.org/data/definitions/78.html"
+      confidence: HIGH

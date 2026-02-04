@@ -1,0 +1,19 @@
+                  
+                  
+┌────────────────┐
+│ 1 Code Finding │
+└────────────────┘
+                         
+  [36m[22m[24m  app.py[0m
+   ❯❯❱ [1mpython-command-injection-reachable[0m
+          User input reaches command execution - CRITICAL RISK    
+          User-controlled data flows directly to shell command    
+          execution. This is exploitable for Remote Code Execution
+          (RCE).                                                  
+                                                                  
+          OWASP Top 10 Mappings: - A03:2021 Injection (Command    
+          Injection) - A01:2021 Broken Access Control (No         
+          authentication) - A09:2021 Security Logging Failures (No
+          input validation logging)                               
+                                                                  
+           17┆ return os.popen(f"ping -c 1 {host}").read()

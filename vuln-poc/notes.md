@@ -1,0 +1,2 @@
+- Didn't install semgrep in my main venv, given semgrep is an operational tool and not project dependency. These operational tools should be installed globally or separately because. 
+- Using Pipx as it helps manages an isolated environment for each tool. I can install a tool once and use everywhere. Rather than using the manul venv that involves more manual management.

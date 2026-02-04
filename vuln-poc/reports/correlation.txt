@@ -1,0 +1,26 @@
+======================================================================
+SECURITY FINDING CORRELATION ANALYSIS
+======================================================================
+
+📋 CODE-LEVEL FINDINGS (Semgrep)
+----------------------------------------------------------------------
+  ✗ python-command-injection-reachable
+    Location: app.py:17
+    Severity: ERROR
+    Reachable: Yes (network-exposed endpoint)
+
+🐳 CONTAINER-LEVEL FINDINGS (Trivy)
+----------------------------------------------------------------------
+  ✗ 189 OS package vulnerabilities
+    - CVE-2026-24515 in libexpat1
+    - CVE-2025-6965 in libsqlite3-0
+    - CVE-2025-7458 in libsqlite3-0
+
+======================================================================
+🔗 CORRELATION ANALYSIS - EXPLOIT CHAIN DETECTION
+======================================================================
+
+ℹ️  No critical exploit chains detected
+======================================================================
+OVERALL RISK LEVEL: MEDIUM
+======================================================================
