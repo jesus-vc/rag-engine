@@ -36,7 +36,11 @@ Runs comprehensive security analysis on all pull requests before merging:
 - **pip-audit** - Python package vulnerability auditing via OSV database. Scans YOUR DEPENDENCIES for known CVEs in installed packages.
 - **OWASP Dependency-Check** - Software Composition Analysis (SCA) for CVEs. Analyzes YOUR DEPENDENCIES and compiles report of well-known, publicly disclosed vulnerabilities. Covers broader ecosystems beyond just Python (includes transitive dependencies). Reports include Common Platform Enumeration (CPE) identifiers.
 - **Ruff** - Fast Python linter
+- **Semgrep** *(planned)* - Fast, customizable SAST tool with lightweight AST analysis. Bridges gap between Bandit's pattern matching and CodeQL's deep analysis—runs in under 1 minute with support for custom security rules. Ideal for pre-commit hooks and can detect framework-specific vulnerabilities (e.g., FastAPI endpoints without auth decorators). Includes built-in rules for secrets, OWASP Top 10, and supply chain security with reachability analysis.
 - **CodeQL** *(planned)* - Advanced semantic SAST using data flow analysis to find complex vulnerabilities Bandit might miss. While Bandit uses pattern matching for common anti-patterns (fast, catches 80% of issues), CodeQL performs deeper analysis by tracking how data flows through your code—detecting multi-step vulnerabilities like tainted data flowing from user input through multiple functions to a SQL query. Native GitHub integration provides automated security advisories and is free for public repositories. Complements Bandit with enterprise-grade vulnerability detection.
+
+**Security Tool Correlation POC** ([vuln-poc/](vuln-poc/))
+Demonstrates how correlating findings from multiple tools reveals critical exploit chains. Example: Semgrep detects command injection → Trivy finds container runs as root + vulnerable OS packages → Combined risk escalates from HIGH to CRITICAL as exploitation leads to full container compromise. This POC shows security intelligence beyond individual tool outputs.
 
 ### 4. Build Stage *(planned)*
 **SBOM Generation & Vulnerability Scanning**
