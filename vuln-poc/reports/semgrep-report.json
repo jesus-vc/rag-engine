@@ -1,1 +1,123 @@
-{"version":"1.150.0","results":[{"check_id":"python-command-injection-reachable","path":"app.py","start":{"line":17,"col":12,"offset":455},"end":{"line":17,"col":41,"offset":484},"extra":{"message":"User input reaches command execution - CRITICAL RISK\nUser-controlled data flows directly to shell command execution.\nThis is exploitable for Remote Code Execution (RCE).\n\nOWASP Top 10 Mappings:\n- A03:2021 Injection (Command Injection)\n- A01:2021 Broken Access Control (No authentication)\n- A09:2021 Security Logging Failures (No input validation logging)\n","metadata":{"category":"security","subcategory":"command-injection","exploitability":"high","internet_exposed":true,"cwe":"CWE-78: OS Command Injection","owasp":["A03:2021 - Injection","A01:2021 - Broken Access Control","A09:2021 - Security Logging and Monitoring Failures"],"references":["https://owasp.org/Top10/A03_2021-Injection/","https://cwe.mitre.org/data/definitions/78.html"],"confidence":"HIGH"},"severity":"ERROR","fingerprint":"requires login","lines":"requires login","validation_state":"NO_VALIDATOR","engine_kind":"OSS"}}],"errors":[],"paths":{"scanned":["app.py"]},"time":{"rules":[],"rules_parse_time":0.002418994903564453,"profiling_times":{"config_time":0.10349798202514648,"core_time":0.22451496124267578,"ignores_time":3.62396240234375e-05,"total_time":0.3325512409210205},"parsing_time":{"total_time":0.0,"per_file_time":{"mean":0.0,"std_dev":0.0},"very_slow_stats":{"time_ratio":0.0,"count_ratio":0.0},"very_slow_files":[]},"scanning_time":{"total_time":0.008280038833618164,"per_file_time":{"mean":0.008280038833618164,"std_dev":0.0},"very_slow_stats":{"time_ratio":0.0,"count_ratio":0.0},"very_slow_files":[]},"matching_time":{"total_time":0.0,"per_file_and_rule_time":{"mean":0.0,"std_dev":0.0},"very_slow_stats":{"time_ratio":0.0,"count_ratio":0.0},"very_slow_rules_on_files":[]},"tainting_time":{"total_time":0.0,"per_def_and_rule_time":{"mean":0.0,"std_dev":0.0},"very_slow_stats":{"time_ratio":0.0,"count_ratio":0.0},"very_slow_rules_on_defs":[]},"fixpoint_timeouts":[],"prefiltering":{"project_level_time":0.0,"file_level_time":0.0,"rules_with_project_prefilters_ratio":0.0,"rules_with_file_prefilters_ratio":1.0,"rules_selected_ratio":1.0,"rules_matched_ratio":1.0},"targets":[],"total_bytes":0,"max_memory_bytes":136174272},"engine_requested":"OSS","skipped_rules":[],"profiling_results":[]}
+{
+    "version": "1.150.0",
+    "results": [
+        {
+            "check_id": "python-command-injection-reachable",
+            "path": "app.py",
+            "start": {
+                "line": 17,
+                "col": 12,
+                "offset": 455
+            },
+            "end": {
+                "line": 17,
+                "col": 41,
+                "offset": 484
+            },
+            "extra": {
+                "message": "User input reaches command execution - CRITICAL RISK\nUser-controlled data flows directly to shell command execution.\nThis is exploitable for Remote Code Execution (RCE).\n\nOWASP Top 10 Mappings:\n- A03:2021 Injection (Command Injection)\n- A01:2021 Broken Access Control (No authentication)\n- A09:2021 Security Logging Failures (No input validation logging)\n",
+                "metadata": {
+                    "category": "security",
+                    "subcategory": "command-injection",
+                    "exploitability": "high",
+                    "internet_exposed": true,
+                    "cwe": "CWE-78: OS Command Injection",
+                    "owasp": [
+                        "A03:2021 - Injection",
+                        "A01:2021 - Broken Access Control",
+                        "A09:2021 - Security Logging and Monitoring Failures"
+                    ],
+                    "references": [
+                        "https://owasp.org/Top10/A03_2021-Injection/",
+                        "https://cwe.mitre.org/data/definitions/78.html"
+                    ],
+                    "confidence": "HIGH"
+                },
+                "severity": "ERROR",
+                "fingerprint": "requires login",
+                "lines": "requires login",
+                "validation_state": "NO_VALIDATOR",
+                "engine_kind": "OSS"
+            }
+        }
+    ],
+    "errors": [],
+    "paths": {
+        "scanned": [
+            "app.py"
+        ]
+    },
+    "time": {
+        "rules": [],
+        "rules_parse_time": 0.002418994903564453,
+        "profiling_times": {
+            "config_time": 0.10349798202514648,
+            "core_time": 0.22451496124267578,
+            "ignores_time": 3.62396240234375e-05,
+            "total_time": 0.3325512409210205
+        },
+        "parsing_time": {
+            "total_time": 0.0,
+            "per_file_time": {
+                "mean": 0.0,
+                "std_dev": 0.0
+            },
+            "very_slow_stats": {
+                "time_ratio": 0.0,
+                "count_ratio": 0.0
+            },
+            "very_slow_files": []
+        },
+        "scanning_time": {
+            "total_time": 0.008280038833618164,
+            "per_file_time": {
+                "mean": 0.008280038833618164,
+                "std_dev": 0.0
+            },
+            "very_slow_stats": {
+                "time_ratio": 0.0,
+                "count_ratio": 0.0
+            },
+            "very_slow_files": []
+        },
+        "matching_time": {
+            "total_time": 0.0,
+            "per_file_and_rule_time": {
+                "mean": 0.0,
+                "std_dev": 0.0
+            },
+            "very_slow_stats": {
+                "time_ratio": 0.0,
+                "count_ratio": 0.0
+            },
+            "very_slow_rules_on_files": []
+        },
+        "tainting_time": {
+            "total_time": 0.0,
+            "per_def_and_rule_time": {
+                "mean": 0.0,
+                "std_dev": 0.0
+            },
+            "very_slow_stats": {
+                "time_ratio": 0.0,
+                "count_ratio": 0.0
+            },
+            "very_slow_rules_on_defs": []
+        },
+        "fixpoint_timeouts": [],
+        "prefiltering": {
+            "project_level_time": 0.0,
+            "file_level_time": 0.0,
+            "rules_with_project_prefilters_ratio": 0.0,
+            "rules_with_file_prefilters_ratio": 1.0,
+            "rules_selected_ratio": 1.0,
+            "rules_matched_ratio": 1.0
+        },
+        "targets": [],
+        "total_bytes": 0,
+        "max_memory_bytes": 136174272
+    },
+    "engine_requested": "OSS",
+    "skipped_rules": [],
+    "profiling_results": []
+}
