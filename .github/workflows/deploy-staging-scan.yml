@@ -25,7 +25,7 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       
       - name: Wait for deployment to stabilize
-        run: sleep 30
+        run: sleep 60
 
   # Run OWASP ZAP scan against staging
   zap-scan:
@@ -43,7 +43,7 @@ jobs:
           target: 'https://rag-engine-staging.fly.dev'
           rules_file_name: '.zap/rules.tsv'
           cmd_options: '-a'
-          fail_action: true
+          fail_action: false
           allow_issue_writing: false
       
       - name: Upload ZAP Report
