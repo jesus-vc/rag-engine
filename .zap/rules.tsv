@@ -1,0 +1,22 @@
+# ZAP Scan Rules Configuration
+# Format: <scan_id>	<threshold>	<status>
+# Thresholds: IGNORE, INFO, LOW, MEDIUM, HIGH
+# Status: PASS, WARN, FAIL, IGNORE
+
+# Ignore certain rules for API endpoints
+# 10021: X-Content-Type-Options Header Missing
+10021	WARN	WARN
+
+# 10023: Information Disclosure - Debug Error Messages
+10023	WARN	WARN
+
+# 10096: Timestamp Disclosure
+10096	IGNORE	IGNORE
+
+# 10109: Modern Web Application
+10109	INFO	PASS
+
+# Other common rules - customize as needed
+# 10110: Dangerous JS Functions
+# 10202: Absence of Anti-CSRF Tokens
+# 90033: Loosely Scoped Cookie
