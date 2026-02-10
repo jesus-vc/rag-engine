@@ -63,4 +63,4 @@ Re-runs all security checks on direct pushes to main before deployment as a fina
 ### 7. Supply Chain Security *(planned)*
 **SLSA Framework Implementation**
 - **SLSA (Supply-chain Levels for Software Artifacts)** - Framework to protect the integrity of the software supply chain through signed provenance. Cryptographically proves how an artifact was built, including the source, build system, and steps involved. Prevents tampering in the CI/CD pipeline, enables supply-chain trust, and enforces deployment policies so only verified, compliant artifacts reach production.
-- Protects against build pipeline attacks such as locally-built artifacts bypassing CI/CD, compromised CI runners, and malicious dependencies injected at build time. GitHub Actions can generate provenance JSON for verification. 
+- Protects against build pipeline attacks such as locally-built artifacts bypassing CI/CD, compromised CI runners, and malicious dependencies injected at build time. GitHub Actions can generate provenance JSON for verification.
