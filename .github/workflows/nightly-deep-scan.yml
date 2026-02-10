@@ -1,0 +1,137 @@
+name: Nightly Deep Security Scan
+
+on:
+  schedule:
+    - cron: "30 1 * * *"  # 5:30 PM PST (1:30 AM UTC next day) - for testing
+    # - cron: "0 2 * * *"  # 2 AM daily - uncomment for production
+  workflow_dispatch:  # Manual trigger for testing
+
+jobs:
+  deep-security-scan:
+    name: Comprehensive Security Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      # Deep SAST - Full Semgrep rulesets
+      - name: SAST (Semgrep - Comprehensive)
+        run: |
+          semgrep \
+            --config p/r2c-security-audit \
+            --config p/secrets \
+            --config p/python \
+            --config p/docker \
+            --sarif --output semgrep-deep.sarif \
+            --quiet --metrics=off
+        continue-on-error: true
+
+      - name: Upload Semgrep SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep-deep.sarif
+          category: semgrep-deep
+
+      # Python security - All severity levels
+      - name: Python Security (Bandit - All Severities)
+        run: bandit -r src/ --severity-level low -f sarif -o bandit-deep.sarif
+        continue-on-error: true
+
+      - name: Upload Bandit SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: bandit-deep.sarif
+          category: bandit-deep
+
+      # Comprehensive dependency scanning
+      - name: SCA (pip-audit)
+        if: always()
+        run: pip-audit --desc --format json --output pip-audit-report.json
+        continue-on-error: true
+
+      - name: Upload pip-audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pip-audit-report
+          path: pip-audit-report.json
+
+      - name: SCA (OWASP Dependency-Check)
+        if: always()
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'rag-engine'
+          path: '.'
+          format: 'HTML'
+          args: >
+            --enableRetired
+
+      - name: Upload OWASP Dependency-Check report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: reports
+
+      # Container, IaC, and secrets scanning
+      - name: Container & IaC Scan (Trivy)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: 'fs'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+        continue-on-error: true
+
+      - name: Upload Trivy SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy
+
+  # Deep fuzzing against dedicated ephemeral environment (1-2 hours)
+  deep-fuzzing:
+    name: Deep Fuzzing (Ephemeral Environment)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120  # 2-hour max
+    # PLANNED: Deploy ephemeral fuzzing environment, run comprehensive fuzzing
+    if: false  # Disabled until fuzzing implementation
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # PLANNED STEPS:
+      # 1. Deploy ephemeral fuzzing environment (separate from staging/prod)
+      # 2. Run comprehensive API fuzzing (REST, GraphQL endpoints)
+      # 3. Property-based testing with hypothesis/schemathesis
+      # 4. Mutation-based fuzzing (AFL++, libFuzzer for Python C extensions)
+      # 5. Collect crash reports, coverage data
+      # 6. Upload fuzzing results as artifacts
+      # 7. Tear down ephemeral environment
+
+      - name: Placeholder - Deep Fuzzing
+        run: |
+          echo "Deep fuzzing not yet implemented"
+          echo "Plan: 1-2 hour fuzzing against dedicated ephemeral environment"
+          echo "Tools: Schemathesis, hypothesis, AFL++, custom fuzzers"

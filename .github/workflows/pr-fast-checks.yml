@@ -1,0 +1,74 @@
+name: Fast PR Security Checks
+
+on:
+  pull_request:
+    branches: [ staging ]
+
+jobs:
+  fast-guardrails:
+    name: Fast Security Gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Fast secret scanning (~10 seconds)
+      - name: Secrets Scan (Gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install security tools
+        run: |
+          pip install --upgrade semgrep bandit ruff
+
+      # Fast SAST - high-signal rules only (~30 seconds)
+      - name: SAST (Semgrep high-signal)
+        run: |
+          semgrep \
+            --config p/ci \
+            --sarif --output semgrep.sarif \
+            --quiet --metrics=off
+        continue-on-error: true
+
+      - name: Upload Semgrep SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+      # Python-specific SAST - high severity only (~15 seconds)
+      - name: Python Security (Bandit)
+        run: bandit -r src/ --severity-level high -f json -o bandit-report.json
+        continue-on-error: true
+
+      - name: Upload Bandit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit-report.json
+
+      # Fast linting (~5 seconds)
+      - name: Code Quality (Ruff)
+        run: ruff check src/
+
+      # Lightweight fuzzing on new PRs (~5-15 minutes) - PLANNED
+      # - name: Lightweight Fuzzing
+      #   run: |
+      #     # Run lightweight fuzzing against PR changes
+      #     # Focus on new endpoints/functions introduced in this PR
+      #     # Timeout after 10 minutes
+      #   timeout-minutes: 15

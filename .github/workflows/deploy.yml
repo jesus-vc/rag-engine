@@ -1,15 +1,19 @@
-name: Deploy to Fly.io
+name: Deploy to Production
 
-# Temporarily disabled - using deploy-staging-scan.yml instead
 on:
-  workflow_dispatch:  # Manual trigger only
-  # push:
-  #   branches: [main]
+  push:
+    branches: [ main ]  # Triggers when staging is merged to main
+  workflow_dispatch:  # Manual trigger for emergency deployments
 
 jobs:
-  # Run security checks first
+  # Run critical security gates only (fast)
   security:
+    name: Critical Security Gate
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -33,7 +37,7 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Run Bandit
-        run: bandit -r src/ --severity-level medium -f json -o bandit-report.json
+        run: bandit -r src/ --severity-level high -f json -o bandit-report.json
 
       - name: Upload Bandit report
         if: always()
@@ -42,32 +46,22 @@ jobs:
           name: bandit-report
           path: bandit-report.json
 
-      - name: Run pip-audit
-        if: always()
-        run: pip-audit --desc
+      - name: Run Semgrep (Critical)
+        run: |
+          semgrep \
+            --config p/ci \
+            --sarif --output semgrep.sarif \
+            --quiet --metrics=off
+        continue-on-error: true
 
-      - name: Run OWASP Dependency-Check
+      - name: Upload Semgrep SARIF
         if: always()
-        uses: dependency-check/Dependency-Check_Action@main
+        uses: github/codeql-action/upload-sarif@v3
         with:
-          project: 'rag-engine'
-          path: '.'
-          format: 'HTML'
-          args: >
-            --enableRetired
+          sarif_file: semgrep.sarif
+          category: semgrep-production
 
-      - name: Upload OWASP Dependency-Check report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: dependency-check-report
-          path: reports
-
-      - name: Run Ruff
-        if: always()
-        run: ruff check src/
-
-  # Only deploy if security checks pass
+  # Only deploy if security gates pass
   deploy:
     needs: security  # Wait for security job to complete
     runs-on: ubuntu-latest

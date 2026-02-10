@@ -1,15 +1,16 @@
-name: Security Checks
+name: Staging Post-Merge Security
 
 on:
-  pull_request:
-    branches: [ main ]
   push:
-    branches: [ main ]
+    branches: [ staging ]
 
 jobs:
   security-scan:
-    name: Security Analysis
+    name: Post-Merge Security Validation
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: Checkout code
@@ -35,7 +36,7 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Run Bandit security scan
-        run: bandit -r src/ --severity-level medium -f json -o bandit-report.json
+        run: bandit -r src/ --severity-level high -f json -o bandit-report.json
         continue-on-error: false
 
       - name: Upload Bandit report
@@ -45,26 +46,25 @@ jobs:
           name: bandit-report
           path: bandit-report.json
 
-      - name: Run pip-audit
+      - name: Run Semgrep
+        if: always()
+        run: |
+          semgrep \
+            --config p/ci \
+            --sarif --output semgrep.sarif \
+            --quiet --metrics=off
+        continue-on-error: true
+
+      - name: Upload Semgrep SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+      - name: Run pip-audit (Fast SCA)
         if: always()
         run: pip-audit --desc
-
-      - name: Run OWASP Dependency-Check
-        if: always()
-        uses: dependency-check/Dependency-Check_Action@main
-        with:
-          project: 'rag-engine'
-          path: '.'
-          format: 'HTML'
-          args: >
-            --enableRetired
-
-      - name: Upload OWASP Dependency-Check report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: dependency-check-report
-          path: reports
 
       - name: Run Ruff linter
         if: always()

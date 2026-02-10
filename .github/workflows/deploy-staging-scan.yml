@@ -1,16 +1,18 @@
 name: Deploy to Staging and Security Scan
 
 on:
-  push:
-    branches: [main, staging]
-  pull_request:
-    branches: [main, staging]
+  workflow_run:
+    workflows: ["Staging Post-Merge Security"]
+    types:
+      - completed
+    branches: [staging]
 
 jobs:
-  # Deploy to staging environment
+  # Deploy to staging environment (only if security checks passed)
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - name: Checkout code

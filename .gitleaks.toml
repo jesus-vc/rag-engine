@@ -1,17 +1,20 @@
-# .gitleaks.toml (example)
-# Configuration for gitleaks to allow test tokens and reduce false positives
+# .gitleaks.toml
+# Configuration for gitleaks - extends default rules with custom allowlists
 
-[allowlist]
-description = "allow test tokens"
-# Example: Allow tokens matching specific test patterns
-regexes = [
-    '''GH_TEST_[0-9A-F]{20}''',
-]
+# Extend the default gitleaks config (inherits all built-in secret detection rules)
+[extend]
+useDefault = true
 
-# You can also allowlist specific paths
+# Global allowlists (v8.25.0+ syntax)
+[[allowlists]]
+description = "Allow test tokens in test_secrets.py only"
 paths = [
     '''^test_secrets\.py$''',
 ]
 
-# Allowlist specific commits (if needed)
-# commits = [ "commit-hash-here" ]
+# Example: allowlist specific test token patterns (currently commented out)
+# [[allowlists]]
+# description = "allow specific test token patterns"
+# regexes = [
+#     '''GH_TEST_[0-9A-F]{20}''',
+# ]
