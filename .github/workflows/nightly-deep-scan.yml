@@ -11,7 +11,7 @@ on:
 
 jobs:
   deep-security-scan:
-    name: Comprehensive Security Analysis
+    name: Nightly Deep Security Scan
     runs-on: ubuntu-latest
     permissions:
       contents: read

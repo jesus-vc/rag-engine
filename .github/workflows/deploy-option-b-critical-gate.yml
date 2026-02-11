@@ -87,6 +87,9 @@ jobs:
     needs: critical-security-gate
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read       # Checkout repository code
+      deployments: write   # Track production deployment status
 
     steps:
       - name: Checkout code

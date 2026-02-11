@@ -6,7 +6,7 @@ on:
 
 jobs:
   fast-guardrails:
-    name: Fast Security Gate
+    name: Fast PR Security Checks
     runs-on: ubuntu-latest
     permissions:
       contents: read

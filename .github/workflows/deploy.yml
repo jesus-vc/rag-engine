@@ -11,6 +11,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read       # Checkout repository code
+      deployments: write   # Track production deployment status
 
     steps:
       - name: Checkout code
