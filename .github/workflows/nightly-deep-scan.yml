@@ -11,11 +11,13 @@ on:
 
 jobs:
   deep-security-scan:
-    name: Nightly Deep Security Scan
+    name: Nightly Deep Security Scan + Fuzzing
     runs-on: ubuntu-latest
+    timeout-minutes: 150  # 2.5 hours max (30 min security + 2 hours fuzzing)
     permissions:
       contents: read
       security-events: write
+      deployments: write     # For fuzzing ephemeral environment
 
     steps:
       - name: Checkout code
@@ -121,19 +123,8 @@ jobs:
             report_md.md
             report_json.json
 
-  # Deep fuzzing against dedicated ephemeral environment (1-2 hours)
-  deep-fuzzing:
-    name: Deep Fuzzing (Ephemeral Environment)
-    runs-on: ubuntu-latest
-    timeout-minutes: 120  # 2-hour max
-    # PLANNED: Deploy ephemeral fuzzing environment, run comprehensive fuzzing
-    if: false  # Disabled until fuzzing implementation
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # PLANNED STEPS:
+      # FUTURE: Deep fuzzing against ephemeral environment (1-2 hours)
+      # Planned implementation:
       # 1. Deploy ephemeral fuzzing environment (separate from staging/prod)
       # 2. Run comprehensive API fuzzing (REST, GraphQL endpoints)
       # 3. Property-based testing with hypothesis/schemathesis
@@ -141,9 +132,4 @@ jobs:
       # 5. Collect crash reports, coverage data
       # 6. Upload fuzzing results as artifacts
       # 7. Tear down ephemeral environment
-
-      - name: Placeholder - Deep Fuzzing
-        run: |
-          echo "Deep fuzzing not yet implemented"
-          echo "Plan: 1-2 hour fuzzing against dedicated ephemeral environment"
-          echo "Tools: Schemathesis, hypothesis, AFL++, custom fuzzers"
+      # Tools: Schemathesis, hypothesis, AFL++, custom fuzzers
