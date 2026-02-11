@@ -1,6 +1,9 @@
 name: Nightly Deep Security Scan
 
 on:
+  push:
+    branches:
+      - staging  # Required gate before staging can merge to main
   schedule:
     - cron: "30 1 * * *"  # 5:30 PM PST (1:30 AM UTC next day) - for testing
     # - cron: "0 2 * * *"  # 2 AM daily - uncomment for production
@@ -31,7 +34,7 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
-      # Deep SAST - Full Semgrep rulesets
+      # Deep SAST - Full Semgrep rulesets (fail on ERROR severity only)
       - name: SAST (Semgrep - Comprehensive)
         run: |
           semgrep \
@@ -39,9 +42,9 @@ jobs:
             --config p/secrets \
             --config p/python \
             --config p/docker \
+            --severity ERROR \
             --sarif --output semgrep-deep.sarif \
             --quiet --metrics=off
-        continue-on-error: true
 
       - name: Upload Semgrep SARIF
         if: always()
@@ -50,10 +53,9 @@ jobs:
           sarif_file: semgrep-deep.sarif
           category: semgrep-deep
 
-      # Python security - All severity levels
-      - name: Python Security (Bandit - All Severities)
-        run: bandit -r src/ --severity-level low -f sarif -o bandit-deep.sarif
-        continue-on-error: true
+      # Python security - High/Medium severity (fail on high only)
+      - name: Python Security (Bandit - High Severity)
+        run: bandit -r src/ --severity-level high -f sarif -o bandit-deep.sarif
 
       - name: Upload Bandit SARIF
         if: always()
@@ -62,11 +64,11 @@ jobs:
           sarif_file: bandit-deep.sarif
           category: bandit-deep
 
-      # Comprehensive dependency scanning
-      - name: SCA (pip-audit)
+      # Comprehensive dependency scanning (fail on critical/high only)
+      - name: SCA (pip-audit - Critical/High)
         if: always()
-        run: pip-audit --desc --format json --output pip-audit-report.json
-        continue-on-error: true
+        run: |
+          pip-audit --desc --severity critical,high --format json --output pip-audit-report.json
 
       - name: Upload pip-audit report
         if: always()
@@ -75,7 +77,7 @@ jobs:
           name: pip-audit-report
           path: pip-audit-report.json
 
-      - name: SCA (OWASP Dependency-Check)
+      - name: SCA (OWASP Dependency-Check - CVSS 7.0+)
         if: always()
         uses: dependency-check/Dependency-Check_Action@main
         with:
@@ -84,6 +86,7 @@ jobs:
           format: 'HTML'
           args: >
             --enableRetired
+            --failOnCVSS 7
 
       - name: Upload OWASP Dependency-Check report
         if: always()
@@ -92,15 +95,15 @@ jobs:
           name: dependency-check-report
           path: reports
 
-      # Container, IaC, and secrets scanning
-      - name: Container & IaC Scan (Trivy)
+      # Container, IaC, and secrets scanning (fail on critical/high only)
+      - name: Container & IaC Scan (Trivy - Critical/High)
         uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: 'fs'
           format: 'sarif'
           output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH,MEDIUM'
-        continue-on-error: true
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
 
       - name: Upload Trivy SARIF
         if: always()
@@ -109,17 +112,16 @@ jobs:
           sarif_file: trivy-results.sarif
           category: trivy
 
-      # DAST - OWASP ZAP scan against staging
-      - name: OWASP ZAP Deep Scan
+      # DAST - OWASP ZAP scan against staging (fail on high/medium alerts)
+      - name: OWASP ZAP Deep Scan (High Alerts)
         uses: zaproxy/action-baseline@v0.15.0
         with:
           target: 'https://rag-engine-staging.fly.dev'
           rules_file_name: '.zap/rules.tsv'
-          cmd_options: '-a -n'
-          fail_action: false
+          cmd_options: '-a -n -l PASS'
+          fail_action: true
           allow_issue_writing: true
           issue_title: 'OWASP ZAP Deep Scan – Nightly'
-        continue-on-error: true
 
       - name: Upload ZAP Report
         if: always()

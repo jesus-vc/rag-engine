@@ -21,6 +21,8 @@ jobs:
       # Fast secret scanning (~10 seconds)
       - name: Secrets Scan (Gitleaks)
         uses: gitleaks/gitleaks-action@v2
+        with:
+            config-path: .gitleaks.toml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -38,11 +40,13 @@ jobs:
       # Fast SAST - high-signal rules only (~30 seconds)
       - name: SAST (Semgrep high-signal)
         run: |
-          semgrep \
-            --config p/ci \
-            --sarif --output semgrep.sarif \
-            --quiet --metrics=off
-        continue-on-error: true
+            touch semgrep.sarif  # Ensure file exists to avoid upload errors
+            semgrep \
+                --config p/ci \
+                --severity ERROR \
+                --sarif --output semgrep.sarif \
+                --quiet --metrics=off
+        # continue-on-error: false
 
       - name: Upload Semgrep SARIF
         if: always()
@@ -53,11 +57,13 @@ jobs:
 
       # Python-specific SAST - high severity only (~15 seconds)
       - name: Python Security (Bandit)
-        run: bandit -r src/ --severity-level high -f json -o bandit-report.json
-        continue-on-error: true
+        run: |
+            test -d src/
+            bandit -r src/ --severity-level high -f json -o bandit-report.json
+        # continue-on-error: false
 
       - name: Upload Bandit report
-        if: always()
+        if: always() && hashFiles('bandit-report.json') != ''
         uses: actions/upload-artifact@v4
         with:
           name: bandit-report
@@ -70,8 +76,8 @@ jobs:
       # Fast dependency vulnerability scan (~1-2 minutes)
       # Only fails on CRITICAL and HIGH severity vulnerabilities
       - name: Dependency Scan (pip-audit)
-        run: pip-audit --require-hashes=false --skip-editable --vulnerability-service osv
-        continue-on-error: false
+        run: pip-audit --require-hashes=false --skip-editable --vulnerability-service osv --severity high
+        # continue-on-error: false
 
         # REVIEW IF WORTH ADDING HERE or in nightly-deep-scan.yml
         # Lightweight fuzzing on new PRs (~5-15 minutes)

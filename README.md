@@ -8,13 +8,13 @@ A modular Retrieval-Augmented Generation (RAG) engine designed to power question
 
 ## Security Gates Across the SDLC
 
-**Strategy:** Fast feedback for developers + comprehensive deep scans off the critical path.
+**Strategy:** Fast feedback for developers + comprehensive deep scans off the critical path + required production gate.
 - **PRs get comprehensive fast checks** (~2-3 min) - Secrets, SAST, Python security, linting, dependency scan (critical/high only)
 - **Post-merge auto-deploys to staging** - No additional checks (all validations passed in PR)
-- **Nightly deep scans** (15-30 min) - Full rulesets, comprehensive SCA, container/IaC scanning, deep fuzzing
-- **Production gate is fast** (~1-2 min) - Critical checks only (dependency scans run nightly)
+- **Nightly deep scans** (15-30 min) - Full rulesets, comprehensive SCA, container/IaC scanning, deep fuzzing. **Required gate before production deployment** (only fails on critical/high)
+- **Production deployment is fast** (~1-2 min) - Functional tests only (all security gates passed via nightly deep scan requirement)
 
-This keeps developers productive with **single-pass PR checks** while eliminating redundant scans and maintaining comprehensive security coverage through nightly deep scans.
+This keeps developers productive with **single-pass PR checks** while eliminating redundant scans and maintaining comprehensive security coverage through nightly deep scans that double as production gates.
 
 ### 1. Local: Pre-commit Hooks ✅
 **Pre-commit hooks** run automatically on every commit to catch issues before they enter version control. Configured via [.pre-commit-config.yaml](.pre-commit-config.yaml):
@@ -87,22 +87,36 @@ pre-commit run --all-files  # Manually run all hooks on entire codebase
 
 **Gate:** All checks must pass before PR can be merged. Once merged, code automatically deploys to staging (no additional security gate).
 
-#### 3b. Nightly: Deep Comprehensive Scans ✅
-**Trigger:** Scheduled daily at 2 AM
-**Purpose:** Deep security analysis when no one's waiting on feedback
+#### 3b. Nightly: Deep Comprehensive Scans + Production Gate ✅
+**Trigger:**
+- Push to `staging` branch (required gate before merging to main/production)
+- Scheduled daily at 2 AM (comprehensive analysis)
+- Manual via workflow_dispatch
+
+**Purpose:** Deep security analysis when no one's waiting on feedback + required gating check before production deployment
+
 **Workflow:** [nightly-deep-scan.yml](.github/workflows/nightly-deep-scan.yml)
+
 **Time:** 15-30 minutes
 
+**Gate Requirement:** Branch protection requires this workflow to pass before staging → main merges. **Only fails on CRITICAL/HIGH severity findings** (medium/low findings are reported but don't block production).
+
 **Comprehensive Scanning:**
-- **✅ Semgrep Full Rulesets** - `p/r2c-security-audit`, `p/secrets`, `p/python`, `p/docker` (comprehensive rule coverage)
-- **✅ Bandit All Severities** - Low, medium, and high severity findings
-- **✅ pip-audit** - Complete Python dependency audit
-- **✅ OWASP Dependency-Check** - Comprehensive SCA covering all ecosystems and transitive dependencies
-- **✅ Trivy** - Container, IaC, and filesystem scanning for vulnerabilities, misconfigurations, and secrets
-- **✅ OWASP ZAP** - Deep DAST scan against staging environment. Comprehensive runtime vulnerability testing including XSS, SQL injection, authentication bypasses, and authorization flaws.
+- **✅ Semgrep Full Rulesets** - `p/r2c-security-audit`, `p/secrets`, `p/python`, `p/docker` (fails on ERROR severity only)
+- **✅ Bandit High Severity** - High severity findings only (critical security issues)
+- **✅ pip-audit Critical/High** - Critical and high severity Python dependency vulnerabilities
+- **✅ OWASP Dependency-Check** - Comprehensive SCA with CVSS 7.0+ threshold (high/critical CVEs)
+- **✅ Trivy Critical/High** - Container, IaC, and filesystem scanning for critical/high vulnerabilities
+- **✅ OWASP ZAP High Alerts** - Deep DAST scan against staging environment (fails on high/medium alerts)
 - **❌ Deep Fuzzing** *(planned)* - 1-2 hour fuzzing against dedicated ephemeral environment with comprehensive API fuzzing, property-based testing, and mutation-based fuzzing
 
-**SARIF Upload:** All findings uploaded to GitHub Security tab for centralized tracking.
+**SARIF Upload:** All findings (including medium/low) uploaded to GitHub Security tab for centralized tracking.
+
+**Production Gate Philosophy:** This workflow serves dual purposes:
+1. **Scheduled deep analysis** - Runs nightly at 2 AM for comprehensive security review
+2. **Production deployment gate** - Runs when changes are pushed to staging (typically after PR merge), must pass before staging → main merge allowed
+
+Only critical/high severity findings block production deployment, ensuring security-critical issues are caught while allowing teams to address lower-severity findings without blocking releases.
 
 **Build Artifact Security** ❌ *(planned)*
 - **❌ Syft** - SBOM generation (CycloneDX, SPDX formats)
@@ -144,25 +158,29 @@ Multi-tier fuzzing approach testing application behavior under unexpected inputs
 
 **Note:** Falco runtime monitoring would run continuously ON the staging Fly.io environment (not as a GitHub Action workflow)
 
-### 5. Production Branch: Fast Critical Security Gate & Deployment
+### 5. Production Branch: Deployment Only (Security Gates Already Passed)
 
 **Trigger:** Merges from `staging` → `main` branch (production)
 
-**Purpose:** Fast final safety net before production deployment. Re-runs critical checks only (no slow dependency scans - those run nightly).
+**Purpose:** Deploy to production immediately - all security gates already passed via nightly-deep-scan.yml requirement.
 
 **Workflow:** [deploy.yml](.github/workflows/deploy.yml)
+
 **Time:** ~1-2 minutes
 
-#### Critical Checks Only ✅
-- **✅ Gitleaks** - Final secret scan before production (~10 seconds)
-- **✅ Semgrep** - Critical SAST with `p/ci` ruleset (~30 seconds)
-- **✅ Bandit** - Python security, high severity only (~15 seconds)
+**Steps:**
+- **✅ pytest** - Functional test suite validation (~30-60 seconds)
+- **✅ Fly.io deployment** - Deploy to production (~30-60 seconds)
 
-**Rationale for Fast Checks:**
-- **No slow dependency scans** - pip-audit and OWASP Dependency-Check run nightly (comprehensive) and on staging (moderate). Production gate only re-runs critical fast checks to avoid deployment delays.
-- **Defense-in-depth** - Protects against:
-  - Direct commits to main (bypassing staging)
-  - Time-gap vulnerabilities (new critical issues between staging merge and production push)
+**Security Philosophy:**
+- **No redundant security checks** - Branch protection requires nightly-deep-scan.yml to pass before allowing staging → main merge
+- **Trust but verify architecture** - All critical/high security findings already validated by production gate
+- **Fast deployment** - Zero security scan overhead, only functional testing before production push
+
+**Protection Layers:**
+1. PR to staging: Fast comprehensive checks (pr-fast-checks.yml)
+2. Staging → main: Deep security scan required (nightly-deep-scan.yml) - **MUST PASS**
+3. Main deploy: Functional tests only (deploy.yml)
   - Human error in merge process
 
 **SARIF Upload:** Results uploaded to GitHub Security tab with `semgrep-production` category.
