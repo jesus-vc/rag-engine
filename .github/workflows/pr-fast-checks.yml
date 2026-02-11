@@ -35,9 +35,9 @@ jobs:
         id: install-tools
         if: steps.python-setup.outcome == 'success'
         run: |
-          pip install --upgrade semgrep bandit ruff
+          pip install --upgrade pip
+          pip install semgrep bandit ruff pip-audit
           pip install -r requirements.txt
-          pip install -r requirements-dev.txt
 
       # Fast SAST - high-signal rules only (~30 seconds)
       - name: SAST (Semgrep high-signal)
