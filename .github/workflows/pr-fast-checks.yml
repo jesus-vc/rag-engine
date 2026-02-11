@@ -32,6 +32,8 @@ jobs:
       - name: Install security tools
         run: |
           pip install --upgrade semgrep bandit ruff
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
 
       # Fast SAST - high-signal rules only (~30 seconds)
       - name: SAST (Semgrep high-signal)
@@ -44,7 +46,7 @@ jobs:
 
       - name: Upload Semgrep SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: semgrep.sarif
           category: semgrep
@@ -65,10 +67,17 @@ jobs:
       - name: Code Quality (Ruff)
         run: ruff check src/
 
-      # Lightweight fuzzing on new PRs (~5-15 minutes) - PLANNED
-      # - name: Lightweight Fuzzing
-      #   run: |
-      #     # Run lightweight fuzzing against PR changes
-      #     # Focus on new endpoints/functions introduced in this PR
-      #     # Timeout after 10 minutes
-      #   timeout-minutes: 15
+      # Fast dependency vulnerability scan (~1-2 minutes)
+      # Only fails on CRITICAL and HIGH severity vulnerabilities
+      - name: Dependency Scan (pip-audit)
+        run: pip-audit --require-hashes=false --skip-editable --vulnerability-service osv
+        continue-on-error: false
+
+        # REVIEW IF WORTH ADDING HERE or in nightly-deep-scan.yml
+        # Lightweight fuzzing on new PRs (~5-15 minutes)
+        # - name: Lightweight Fuzzing
+        #   run: |
+        #     # Run lightweight fuzzing against PR changes
+        #     # Focus on new endpoints/functions introduced in this PR
+        #     # Timeout after 10 minutes
+        #   timeout-minutes: 15

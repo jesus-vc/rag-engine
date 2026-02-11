@@ -9,12 +9,12 @@ A modular Retrieval-Augmented Generation (RAG) engine designed to power question
 ## Security Gates Across the SDLC
 
 **Strategy:** Fast feedback for developers + comprehensive deep scans off the critical path.
-- **PRs get fast checks** (~1-2 min) - Secrets, high-signal SAST, Python security, linting
-- **Post-merge runs moderate checks** (~3-4 min) - PR checks + dependency scanning
+- **PRs get comprehensive fast checks** (~2-3 min) - Secrets, SAST, Python security, linting, dependency scan (critical/high only)
+- **Post-merge auto-deploys to staging** - No additional checks (all validations passed in PR)
 - **Nightly deep scans** (15-30 min) - Full rulesets, comprehensive SCA, container/IaC scanning, deep fuzzing
 - **Production gate is fast** (~1-2 min) - Critical checks only (dependency scans run nightly)
 
-This keeps developers productive (no 15-minute PR wait times) while maintaining comprehensive security coverage through nightly deep scans.
+This keeps developers productive with **single-pass PR checks** while eliminating redundant scans and maintaining comprehensive security coverage through nightly deep scans.
 
 ### 1. Local: Pre-commit Hooks ✅
 **Pre-commit hooks** run automatically on every commit to catch issues before they enter version control. Configured via [.pre-commit-config.yaml](.pre-commit-config.yaml):
@@ -64,39 +64,30 @@ pre-commit run --all-files  # Manually run all hooks on entire codebase
 
 ![GitHub Push Protection Example](images/github-push-protection.png)
 
-### 3. Staging Branch: Fast PR Checks + Post-Merge Validation
+### 3. Staging Branch: Fast PR Checks + Nightly Validation
 
-**Strategy:** Fast feedback on PRs (< 3 min) keeps developers productive. Deep comprehensive scans run nightly when no one's waiting.
+**Strategy:** Single comprehensive PR check → immediate deployment on merge. Deep scans run nightly off the critical path.
 
 #### 3a. Pull Request: Fast Security Gate ✅
 **Trigger:** PRs to `staging` branch
-**Purpose:** Quick safety check - is this safe to merge RIGHT NOW?
+**Purpose:** Complete security validation before merge - is this safe to merge AND deploy?
 **Workflow:** [pr-fast-checks.yml](.github/workflows/pr-fast-checks.yml)
-**Time:** ~1-2 minutes
+**Time:** ~2-3 minutes
 
 **Fast Guardrails:**
 - **✅ Gitleaks** - Secrets scan (~10 seconds)
 - **✅ Semgrep** - High-signal SAST with `p/ci` ruleset (~30 seconds)
 - **✅ Bandit** - Python SAST, high severity only (~15 seconds)
 - **✅ Ruff** - Fast Python linting (~5 seconds)
+- **✅ pip-audit** - Dependency vulnerability scan, blocks on CRITICAL/HIGH only (~1-2 minutes)
 - **✅ CodeQL** *(GitHub Security UI)* - Advanced semantic SAST using data flow analysis. Enabled via GitHub Security settings (not a workflow file). Tracks how tainted data flows through code to detect complex multi-step vulnerabilities that pattern-matching tools miss. Runs automatically on PRs and pushes. Free for public repositories.
 - **❌ Lightweight Fuzzing** *(planned)* - 5-15 minute fuzzing focused on new endpoints/functions introduced in the PR
 
 **SARIF Upload:** Results uploaded to GitHub Security tab for tracking.
 
-#### 3b. Post-Merge: Moderate Security Validation ✅
-**Trigger:** Push to `staging` branch (after PR merge)
-**Purpose:** Moderate checks before staging deployment
-**Workflow:** [staging-post-merge.yml](.github/workflows/staging-post-merge.yml)
-**Time:** ~3-4 minutes
+**Gate:** All checks must pass before PR can be merged. Once merged, code automatically deploys to staging (no additional security gate).
 
-**Additional Checks:**
-- All PR checks (Gitleaks, Semgrep, Bandit, Ruff)
-- **✅ pip-audit** - Fast Python dependency vulnerability scan (~1-2 minutes)
-
-**Blocks Deployment:** If checks fail, deployment to staging environment is blocked via workflow dependency.
-
-#### 3c. Nightly: Deep Comprehensive Scans ✅
+#### 3b. Nightly: Deep Comprehensive Scans ✅
 **Trigger:** Scheduled daily at 2 AM
 **Purpose:** Deep security analysis when no one's waiting on feedback
 **Workflow:** [nightly-deep-scan.yml](.github/workflows/nightly-deep-scan.yml)
@@ -108,6 +99,7 @@ pre-commit run --all-files  # Manually run all hooks on entire codebase
 - **✅ pip-audit** - Complete Python dependency audit
 - **✅ OWASP Dependency-Check** - Comprehensive SCA covering all ecosystems and transitive dependencies
 - **✅ Trivy** - Container, IaC, and filesystem scanning for vulnerabilities, misconfigurations, and secrets
+- **✅ OWASP ZAP** - Deep DAST scan against staging environment. Comprehensive runtime vulnerability testing including XSS, SQL injection, authentication bypasses, and authorization flaws.
 - **❌ Deep Fuzzing** *(planned)* - 1-2 hour fuzzing against dedicated ephemeral environment with comprehensive API fuzzing, property-based testing, and mutation-based fuzzing
 
 **SARIF Upload:** All findings uploaded to GitHub Security tab for centralized tracking.
@@ -117,16 +109,18 @@ pre-commit run --all-files  # Manually run all hooks on entire codebase
 - **❌ Grype** - SBOM-based vulnerability scanning of built artifacts
 - **Note:** Trivy already provides container/IaC scanning in nightly scans
 
-### 4. Staging Environment: Runtime Testing (DAST + Fuzzing)
+### 4. Staging Environment: Nightly DAST + Fuzzing
 
-**Trigger:** After successful deployment to staging environment (production mirror)
+**Trigger:** Scheduled nightly at 5:30 PM PST (testing) / 2 AM (production)
 
-**Purpose:** Detect runtime vulnerabilities that only manifest in running applications. High/Critical findings block staging → production promotion.
+**Purpose:** Deep runtime security testing against staging environment when no one's waiting on deployment.
 
-#### Dynamic Application Security Testing
-[deploy-staging-scan.yml](.github/workflows/deploy-staging-scan.yml) runs security scans against live staging environment:
+#### Dynamic Application Security Testing (Nightly)
+Included in [nightly-deep-scan.yml](.github/workflows/nightly-deep-scan.yml):
 
-- **✅ OWASP ZAP** - Containerized DAST scanner that performs automated security testing against `https://rag-engine-staging.fly.dev`. Detects runtime vulnerabilities including XSS, SQL injection, authentication bypasses, insecure configurations, and authorization flaws that static analysis cannot find.
+- **✅ OWASP ZAP Deep Scan** - Comprehensive DAST against `https://rag-engine-staging.fly.dev`. Performs thorough automated security testing to detect runtime vulnerabilities including XSS, SQL injection, authentication bypasses, insecure configurations, and authorization flaws that static analysis cannot find.
+
+**Why Nightly?** DAST scans can take 5-15+ minutes for thorough coverage. Running nightly keeps deployment fast (~immediate) while ensuring comprehensive runtime testing happens off the critical path.
 
 #### Fuzzing Strategy ❌ *(planned)*
 Multi-tier fuzzing approach testing application behavior under unexpected inputs:
@@ -146,9 +140,9 @@ Multi-tier fuzzing approach testing application behavior under unexpected inputs
 
 **Benefits:** Discovers edge cases, input validation bugs, crashes, and unexpected behavior that static analysis and scripted DAST cannot find.
 
-**Note:** Falco runtime monitoring would run continuously ON the staging Fly.io environment (not as a GitHub Action workflow)
+**Deployment:** Merging to staging triggers [deploy-staging.yml](.github/workflows/deploy-staging.yml) which immediately deploys to Fly.io staging environment.
 
-**Merge Gate:** High and Critical severity findings must be fixed before merging `staging` → `main` branch.
+**Note:** Falco runtime monitoring would run continuously ON the staging Fly.io environment (not as a GitHub Action workflow)
 
 ### 5. Production Branch: Fast Critical Security Gate & Deployment
 

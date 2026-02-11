@@ -45,7 +45,7 @@ jobs:
 
       - name: Upload Semgrep SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: semgrep-deep.sarif
           category: semgrep-deep
@@ -57,7 +57,7 @@ jobs:
 
       - name: Upload Bandit SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: bandit-deep.sarif
           category: bandit-deep
@@ -104,10 +104,32 @@ jobs:
 
       - name: Upload Trivy SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-results.sarif
           category: trivy
+
+      # DAST - OWASP ZAP scan against staging
+      - name: OWASP ZAP Deep Scan
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: 'https://rag-engine-staging.fly.dev'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a -n'
+          fail_action: false
+          allow_issue_writing: true
+          issue_title: 'OWASP ZAP Deep Scan – Nightly'
+        continue-on-error: true
+
+      - name: Upload ZAP Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-deep-scan-report
+          path: |
+            report_html.html
+            report_md.md
+            report_json.json
 
   # Deep fuzzing against dedicated ephemeral environment (1-2 hours)
   deep-fuzzing:
