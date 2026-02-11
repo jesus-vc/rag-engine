@@ -7,15 +7,10 @@ useDefault = true
 
 # Global allowlists (v8.25.0+ syntax)
 [[allowlists]]
-description = "Allow test tokens in test_secrets.py only"
+description = "Allow test tokens in test files"
 paths = [
     '''^test_secrets\.py$''',
-]
-
-[[allowlists]]
-description = "Ignore fake test secrets in historical test_file.py (file deleted, was test data)"
-commits = [
-    '''8172458de405b5edad2cf284f80be32e5602dd81''',
+    '''^test_file\.py$''',
 ]
 
 # Example: allowlist specific test token patterns (currently commented out)
