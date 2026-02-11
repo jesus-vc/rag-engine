@@ -12,6 +12,12 @@ paths = [
     '''^test_secrets\.py$''',
 ]
 
+[[allowlists]]
+description = "Ignore fake test secrets in historical test_file.py (file deleted, was test data)"
+commits = [
+    '''8172458de405b5edad2cf284f80be32e5602dd81''',
+]
+
 # Example: allowlist specific test token patterns (currently commented out)
 # [[allowlists]]
 # description = "allow specific test token patterns"
