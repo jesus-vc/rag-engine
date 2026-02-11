@@ -9,7 +9,7 @@ A modular Retrieval-Augmented Generation (RAG) engine designed to power question
 ## Security Gates Across the SDLC
 
 **Strategy:** Fast feedback for developers + comprehensive deep scans off the critical path + required production gate.
-- **PRs get comprehensive fast checks** (~2-3 min) - Secrets, SAST, Python security, linting, dependency scan (critical/high only)
+- **PRs get fast security checks** (~1 min) - Secrets, SAST, Python security, linting
 - **Post-merge auto-deploys to staging** - No additional checks (all validations passed in PR)
 - **Nightly deep scans** (15-30 min) - Full rulesets, comprehensive SCA, container/IaC scanning, deep fuzzing. **Required gate before production deployment** (only fails on critical/high)
 - **Production deployment is fast** (~1-2 min) - Functional tests only (all security gates passed via nightly deep scan requirement)
@@ -72,14 +72,13 @@ pre-commit run --all-files  # Manually run all hooks on entire codebase
 **Trigger:** PRs to `staging` branch
 **Purpose:** Complete security validation before merge - is this safe to merge AND deploy?
 **Workflow:** [pr-fast-checks.yml](.github/workflows/pr-fast-checks.yml)
-**Time:** ~2-3 minutes
+**Time:** ~1 minute
 
 **Fast Guardrails:**
 - **✅ Gitleaks** - Secrets scan (~10 seconds)
 - **✅ Semgrep** - High-signal SAST with `p/ci` ruleset (~30 seconds)
 - **✅ Bandit** - Python SAST, high severity only (~15 seconds)
 - **✅ Ruff** - Fast Python linting (~5 seconds)
-- **✅ pip-audit** - Dependency vulnerability scan, blocks on CRITICAL/HIGH only (~1-2 minutes)
 - **✅ CodeQL** *(GitHub Security UI)* - Advanced semantic SAST using data flow analysis. Enabled via GitHub Security settings (not a workflow file). Tracks how tainted data flows through code to detect complex multi-step vulnerabilities that pattern-matching tools miss. Runs automatically on PRs and pushes. Free for public repositories.
 - **❌ Lightweight Fuzzing** *(planned)* - 5-15 minute fuzzing focused on new endpoints/functions introduced in the PR
 
@@ -104,7 +103,6 @@ pre-commit run --all-files  # Manually run all hooks on entire codebase
 **Comprehensive Scanning:**
 - **✅ Semgrep Full Rulesets** - `p/r2c-security-audit`, `p/secrets`, `p/python`, `p/docker` (fails on ERROR severity only)
 - **✅ Bandit High Severity** - High severity findings only (critical security issues)
-- **✅ pip-audit Critical/High** - Critical and high severity Python dependency vulnerabilities
 - **✅ OWASP Dependency-Check** - Comprehensive SCA with CVSS 7.0+ threshold (high/critical CVEs)
 - **✅ Trivy Critical/High** - Container, IaC, and filesystem scanning for critical/high vulnerabilities
 - **✅ OWASP ZAP High Alerts** - Deep DAST scan against staging environment (fails on high/medium alerts)

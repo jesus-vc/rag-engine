@@ -13,5 +13,3 @@ pytest>=7.4.0
 bandit==1.7.9
 ruff==0.1.6
 semgrep==1.142.0
-
-# Note: pip-audit only used in CI workflows, not needed locally

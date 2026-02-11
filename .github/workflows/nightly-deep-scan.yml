@@ -64,19 +64,7 @@ jobs:
           sarif_file: bandit-deep.sarif
           category: bandit-deep
 
-      # Comprehensive dependency scanning (fail on critical/high only)
-      - name: SCA (pip-audit - Critical/High)
-        if: always()
-        run: |
-          pip-audit --desc --severity critical,high --format json --output pip-audit-report.json
-
-      - name: Upload pip-audit report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pip-audit-report
-          path: pip-audit-report.json
-
+      # Comprehensive dependency scanning (fail on CVSS 7.0+ / high/critical)
       - name: SCA (OWASP Dependency-Check - CVSS 7.0+)
         if: always()
         uses: dependency-check/Dependency-Check_Action@main

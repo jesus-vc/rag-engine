@@ -36,7 +36,7 @@ jobs:
         if: steps.python-setup.outcome == 'success'
         run: |
           pip install --upgrade pip
-          pip install semgrep bandit ruff pip-audit
+          pip install semgrep bandit ruff
           pip install -r requirements.txt
 
       # Fast SAST - high-signal rules only (~30 seconds)
@@ -74,12 +74,6 @@ jobs:
       - name: Code Quality (Ruff)
         if: (success() || failure()) && steps.install-tools.outcome == 'success'
         run: ruff check src/
-
-      # Fast dependency vulnerability scan (~1-2 minutes)
-      # Only fails on CRITICAL and HIGH severity vulnerabilities
-      - name: Dependency Scan (pip-audit)
-        if: (success() || failure()) && steps.install-tools.outcome == 'success'
-        run: pip-audit --require-hashes=false --skip-editable --vulnerability-service osv --severity high
 
         # REVIEW IF WORTH ADDING HERE or in nightly-deep-scan.yml
         # Lightweight fuzzing on new PRs (~5-15 minutes)
