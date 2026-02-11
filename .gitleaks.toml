@@ -6,11 +6,11 @@
 useDefault = true
 
 # Global allowlists (v8.25.0+ syntax)
-[[allowlists]]
-description = "Allow test tokens in test files"
+[allowlist]
+description = "Allow test files with fake secrets"
 paths = [
-    '''^test_secrets\.py$''',
-    '''^test_file\.py$''',
+    '''test_secrets\.py$''',
+    '''test_file\.py$''',
 ]
 
 # Example: allowlist specific test token patterns (currently commented out)
