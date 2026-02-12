@@ -8,199 +8,178 @@ A modular Retrieval-Augmented Generation (RAG) engine designed to power question
 
 ## Security Gates Across the SDLC
 
-**Strategy:** Fast feedback for developers + comprehensive deep scans off the critical path + required production gate.
-- **PRs get fast security checks** (~1 min) - Secrets, SAST, Python security, linting
-- **Post-merge auto-deploys to staging** - No additional checks (all validations passed in PR)
-- **Nightly deep scans** (15-30 min) - Full rulesets, comprehensive SCA, container/IaC scanning, deep fuzzing. **Required gate before production deployment** (only fails on critical/high)
-- **Production deployment is fast** (~1-2 min) - Functional tests only (all security gates passed via nightly deep scan requirement)
+### Philosophy: Developer-Friendly Shift-Left Security
 
-This keeps developers productive with **single-pass PR checks** while eliminating redundant scans and maintaining comprehensive security coverage through nightly deep scans that double as production gates.
+**Shift-left security succeeds when it respects developer time.** We integrate security early—during design, coding, and CI. Developers should get fast, actionable feedback without leaving their flow.
 
-### 1. Local: Pre-commit Hooks ✅
-**Pre-commit hooks** run automatically on every commit to catch issues before they enter version control. Configured via [.pre-commit-config.yaml](.pre-commit-config.yaml):
+**What Developer-Friendly Means:**
+- ⚡ **Fast feedback**: Seconds (not minutes) for inner-loop checks
+- 🎯 **Low noise**: High-signal rules first; phase in stricter ones gradually
+- 🔄 **In-flow**: IDE, pre-commit, PR checks—no context switching
+- 📋 **Transparent**: Policies as code; exceptions time-bound and auditable
+- 📚 **Learning-oriented**: Every failure teaches the fix
 
-**✅ Gitleaks** - Detects hardcoded secrets (API keys, tokens, passwords) in staged changes
-- Scans only uncommitted files for fast feedback (< 1 second)
-- Uses [default rules](https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml) with optional custom config via `.gitleaks.toml`
-- Redacts secrets in output to prevent exposure in logs
-- Test locally: `pre-commit run gitleaks --files <file>`
+**Strategy:**
+- Keep **fast checks in the inner loop** (pre-commit, PR) for immediate feedback
+- Move **heavy analysis to nightly scans** off the critical path
+- Encode **policy so decisions are visible and auditable**
+- Favor **modular, open-source tools** to avoid vendor lock-in; upgrade to enterprise where it clearly pays off.
 
-**✅ Semgrep** - Multi-language SAST for security vulnerabilities and code quality issues
-- Uses `p/ci` ruleset (high-signal, low-false-positive rules optimized for CI)
-- Detects SQL injection, XSS, insecure deserialization, and more across multiple languages
-- Complementary to Bandit with broader language coverage and different detection patterns
-- Defense-in-depth approach: both tools catch issues the other might miss
+### Security Pipeline Overview
 
-**✅ Bandit** - Python-specific security linting
-- Deep Python security knowledge (unsafe pickle, weak crypto, hardcoded passwords, SQL injection)
-- Configured for high-severity issues only to avoid noise
-- Scans `src/` directory recursively
-- Specialized Python anti-pattern detection complementing Semgrep's broader approach
+```mermaid
+graph TD
+    A[Local Development] --> B[Pre-commit Hooks ⚡<br/>Gitleaks, Semgrep, Bandit, Ruff<br/>&lt;1 second]
+    B --> C[Push to GitHub]
+    C --> D[Create PR to Staging]
+    D --> E[Fast PR Checks ⚡<br/>Secrets, SAST, Linting<br/>~1 minute]
+    E -->|Pass| F[Merge to Staging]
+    E -->|Fail| D
+    F --> G[Auto-Deploy to Staging<br/>No security checks]
+    G --> H[Nightly Deep Scan 🔒<br/>Trivy + ZAP<br/>~20 minutes<br/>PRODUCTION GATE]
+    H -->|Pass| I{Ready for<br/>Production?}
+    H -->|Fail| J[Fix Issues]
+    J --> D
+    I -->|Yes| K[Merge Staging → Main]
+    I -->|No| L[Continue Development]
+    L --> D
+    K --> M[Production Deploy ⚡<br/>Functional Tests Only<br/>~1-2 minutes]
+    M --> N[Production Environment]
 
-**✅ Pre-commit-hooks** - Basic file hygiene checks
-- `check-yaml`: Validates YAML syntax (prevents broken config files)
-- `end-of-file-fixer`: Ensures files end with newline (POSIX standard)
-- `trailing-whitespace`: Removes trailing spaces (prevents noisy diffs)
-- Works on all file types (YAML, Markdown, Python, etc.)
-
-**✅ Ruff** - Fast Python linter and formatter
-- Lints and auto-fixes code quality issues (unused imports, undefined names)
-- Formats code for consistency (replaces Black)
-- Runs in milliseconds (100x faster than traditional tools)
-
-**Installation:**
-```bash
-pre-commit install  # Installs hooks to run automatically on commit
-pre-commit run --all-files  # Manually run all hooks on entire codebase
+    style B fill:#90EE90
+    style E fill:#90EE90
+    style H fill:#FFB6C6
+    style M fill:#90EE90
+    style N fill:#87CEEB
 ```
 
-**❌ Husky + Playwright** *(planned)* - Automated security testing framework for pre-commit hooks. Would execute Playwright-based security tests locally before commits, ensuring security checks run even before code reaches the repository.
+**Legend:** ⚡ Fast (<2 min) | 🔒 Deep Scan (Production Gate)
 
-### 2. Pre-push: GitHub Protection ✅
-**GitHub Push Protection** blocks real-looking secrets from known providers before they reach the repository history.
-- Note: Push Protection will block if secrets exist in previous commits. In that scenario, one option is to remove the commits containing secrets from history through an interactive rebase. Or, if your secrets haven't been committed yet, stash your non-problematic files and commit them into a new branch from main. This second option is cleaner and avoids any risk of pushing secrets, but requires that your secrets haven't been committed yet.
+**Quick Summary:**
+1. **Local** - Pre-commit hooks catch secrets/basic issues (<1s)
+2. **PR** - Fast comprehensive checks (~1 min) validate safety before merge
+3. **Staging** - Auto-deploy immediately (no additional gates)
+4. **Nightly** - Deep scans (Trivy, ZAP) run off critical path, **REQUIRED before production**
+5. **Production** - Fast deploy (~1-2 min) with functional tests
 
-![Secrets Example](images/secret-examples.png)
+**Result:** Developers stay productive with **single-pass PR checks** while comprehensive security coverage runs nightly as the mandatory production gate.
 
-![GitHub Push Protection Example](images/github-push-protection.png)
+### 1. Local: Pre-commit Hooks ⚡ (<1 second)
+
+**Purpose:** Instant feedback before code enters version control. Configured via [.pre-commit-config.yaml](.pre-commit-config.yaml)
+
+**Active Hooks:**
+- **✅ Gitleaks** - Secrets detection (API keys, tokens, passwords)
+- **✅ Semgrep** - Multi-language SAST (`p/ci` ruleset: high-signal, low false-positives)
+- **✅ Bandit** - Python security (high-severity only to reduce noise)
+- **✅ Ruff** - Fast Python linting + auto-formatting (100x faster than traditional tools)
+- **✅ Pre-commit-hooks** - File hygiene (YAML syntax, trailing whitespace, EOF newlines)
+
+**Setup:**
+```bash
+pre-commit install              # Auto-run on every commit
+pre-commit run --all-files      # Manual scan of entire codebase
+```
+
+**Philosophy:** Defense-in-depth with complementary tools. Semgrep catches broad patterns; Bandit specializes in Python anti-patterns. Both configured for high-signal output to respect developer time.
+
+### 2. Pre-push: GitHub Push Protection ✅
+
+**GitHub Push Protection** blocks known secret patterns from reaching repository history (GitHub-side enforcement).
+
+**Note:** If secrets already exist in commit history, use interactive rebase to remove them or create a fresh branch from main.
+
+![GitHub Push Protection](images/github-push-protection.png)
 
 ### 3. Staging Branch: Fast PR Checks + Nightly Validation
 
 **Strategy:** Single comprehensive PR check → immediate deployment on merge. Deep scans run nightly off the critical path.
 
-#### 3a. Pull Request: Fast Security Gate ✅
-**Trigger:** PRs to `staging` branch
-**Purpose:** Complete security validation before merge - is this safe to merge AND deploy?
+#### 3a. Pull Request: Fast Security Gate ⚡ (~1 minute)
+
 **Workflow:** [pr-fast-checks.yml](.github/workflows/pr-fast-checks.yml)
-**Time:** ~1 minute
+**Purpose:** Is this safe to merge AND deploy? Complete validation in developer's flow.
 
-**Fast Guardrails:**
-- **✅ Gitleaks** - Secrets scan (~10 seconds)
-- **✅ Semgrep** - High-signal SAST with `p/ci` ruleset (~30 seconds)
-- **✅ Bandit** - Python SAST, high severity only (~15 seconds)
-- **✅ Ruff** - Fast Python linting (~5 seconds)
-- **✅ CodeQL** *(GitHub Security UI)* - Advanced semantic SAST using data flow analysis. Enabled via GitHub Security settings (not a workflow file). Tracks how tainted data flows through code to detect complex multi-step vulnerabilities that pattern-matching tools miss. Runs automatically on PRs and pushes. Free for public repositories.
-- **❌ Lightweight Fuzzing** *(planned)* - 5-15 minute fuzzing focused on new endpoints/functions introduced in the PR
+**Active Checks:**
+- **✅ Gitleaks** - Secrets scan (~10s)
+- **✅ Semgrep** - SAST with `p/ci` ruleset (~30s)
+- **✅ Bandit** - Python security, high severity only (~15s)
+- **✅ Ruff** - Python linting (~5s)
+- **✅ CodeQL** *(GitHub Security)* - Semantic SAST with data flow analysis (auto-enabled, free for public repos)
 
-**SARIF Upload:** Results uploaded to GitHub Security tab for tracking.
+**Gate Behavior:** All checks must pass. On merge → **auto-deploy to staging** (no additional gates).
 
-**Gate:** All checks must pass before PR can be merged. Once merged, code automatically deploys to staging (no additional security gate).
+**Future:** Lightweight fuzzing (5-15 min) on new endpoints only.
 
-#### 3b. Nightly: Deep Comprehensive Scans + Production Gate ✅
+#### 3b. Nightly Deep Scan — **REQUIRED PRODUCTION GATE** ✅
+
+**Workflow:** [nightly-deep-scan.yml](.github/workflows/nightly-deep-scan.yml) | **Time:** ~20 minutes
+
 **Trigger:**
-- Push to `staging` branch (required gate before merging to main/production)
-- Scheduled daily at 2 AM (comprehensive analysis)
-- Manual via workflow_dispatch
+- **Production gate**: Push to `staging` branch (staging → main merge **BLOCKED** until this passes)
+- **Scheduled**: Nightly at 2 AM for comprehensive analysis
+- **Manual**: workflow_dispatch for on-demand deep scans
 
-**Purpose:** Deep security analysis when no one's waiting on feedback + required gating check before production deployment
+**Philosophy:** Deep, time-intensive scanning runs off the critical path (nightly) while serving as the mandatory security gate before production. Branch protection **requires** this workflow to pass before staging → main merges are allowed.
 
-**Workflow:** [nightly-deep-scan.yml](.github/workflows/nightly-deep-scan.yml)
+**Active Scans:**
+- **✅ Trivy Multi-Layer Scanning** - Container and infrastructure security (fails on CRITICAL/HIGH):
+  - **Image Scan**: Analyzes the actual Docker image pushed to GitHub Container Registry (`ghcr.io`), not just source code
+    - Base image (python:3.11-slim) OS vulnerabilities
+    - Debian system packages
+    - Python dependencies from requirements.txt
+    - All runtime libraries
+    - Layer-by-layer analysis pinpoints exactly where vulnerabilities originate
+  - **Filesystem Scan**: Repository infrastructure and configuration
+    - IaC misconfigurations (Dockerfile, Docker Compose, Kubernetes)
+    - Hardcoded secrets and sensitive data
+    - License compliance (GPL, proprietary licenses)
+  - **Value**: What you scan is what you ship — same artifact used for scanning, testing, and deployment
 
-**Time:** 15-30 minutes
+- **✅ OWASP ZAP** - Deep DAST against `https://rag-engine-staging.fly.dev` (fails on HIGH/MEDIUM):
+  - XSS, SQL injection, authentication bypasses
+  - Authorization flaws, insecure configurations
+  - Runtime vulnerabilities static analysis cannot detect
 
-**Gate Requirement:** Branch protection requires this workflow to pass before staging → main merges. **Only fails on CRITICAL/HIGH severity findings** (medium/low findings are reported but don't block production).
+**Commented Out (Planned):**
+- **❌ Semgrep Full Rulesets** - `p/r2c-security-audit`, `p/secrets`, `p/python`, `p/docker`
+- **❌ Bandit High Severity** - Python security, high severity only
+- **❌ OWASP Dependency-Check** - Comprehensive SCA, CVSS 7.0+ threshold
+- **❌ Deep Fuzzing** *(planned)* - 1-2 hour API fuzzing against ephemeral environment
 
-**Comprehensive Scanning:**
-- **✅ Semgrep Full Rulesets** - `p/r2c-security-audit`, `p/secrets`, `p/python`, `p/docker` (fails on ERROR severity only)
-- **✅ Bandit High Severity** - High severity findings only (critical security issues)
-- **✅ OWASP Dependency-Check** - Comprehensive SCA with CVSS 7.0+ threshold (high/critical CVEs)
-- **✅ Trivy Critical/High** - Container, IaC, and filesystem scanning for critical/high vulnerabilities
-- **✅ OWASP ZAP High Alerts** - Deep DAST scan against staging environment (fails on high/medium alerts)
-- **❌ Deep Fuzzing** *(planned)* - 1-2 hour fuzzing against dedicated ephemeral environment with comprehensive API fuzzing, property-based testing, and mutation-based fuzzing
+**Failure Policy:** Only CRITICAL/HIGH severity findings block production. Medium/low findings reported to GitHub Security tab but don't prevent deployment.
 
-**SARIF Upload:** All findings (including medium/low) uploaded to GitHub Security tab for centralized tracking.
+### 4. Staging Environment
 
-**Production Gate Philosophy:** This workflow serves dual purposes:
-1. **Scheduled deep analysis** - Runs nightly at 2 AM for comprehensive security review
-2. **Production deployment gate** - Runs when changes are pushed to staging (typically after PR merge), must pass before staging → main merge allowed
+**Deployment:** [deploy-staging.yml](.github/workflows/deploy-staging.yml) → immediate Fly.io deployment (no security gates—already validated in PR).
 
-Only critical/high severity findings block production deployment, ensuring security-critical issues are caught while allowing teams to address lower-severity findings without blocking releases.
+**Runtime Testing:** See Section 3b—OWASP ZAP DAST runs nightly against this environment.
 
-**Build Artifact Security** ❌ *(planned)*
-- **❌ Syft** - SBOM generation (CycloneDX, SPDX formats)
-- **❌ Grype** - SBOM-based vulnerability scanning of built artifacts
-- **Note:** Trivy already provides container/IaC scanning in nightly scans
+**Future:** SBOM generation (Syft), Falco runtime monitoring (eBPF-based threat detection).
 
-### 4. Staging Environment: Nightly DAST + Fuzzing
+### 5. Production: Fast Deploy ⚡ (~1-2 minutes)
 
-**Trigger:** Scheduled nightly at 5:30 PM PST (testing) / 2 AM (production)
-
-**Purpose:** Deep runtime security testing against staging environment when no one's waiting on deployment.
-
-#### Dynamic Application Security Testing (Nightly)
-Included in [nightly-deep-scan.yml](.github/workflows/nightly-deep-scan.yml):
-
-- **✅ OWASP ZAP Deep Scan** - Comprehensive DAST against `https://rag-engine-staging.fly.dev`. Performs thorough automated security testing to detect runtime vulnerabilities including XSS, SQL injection, authentication bypasses, insecure configurations, and authorization flaws that static analysis cannot find.
-
-**Why Nightly?** DAST scans can take 5-15+ minutes for thorough coverage. Running nightly keeps deployment fast (~immediate) while ensuring comprehensive runtime testing happens off the critical path.
-
-#### Fuzzing Strategy ❌ *(planned)*
-Multi-tier fuzzing approach testing application behavior under unexpected inputs:
-
-**Lightweight PR Fuzzing (5-15 minutes)**
-- Runs during PR fast checks (see Section 3a)
-- Focuses on new endpoints/functions introduced in the PR
-- Quick smoke test for obvious input validation bugs
-
-**Nightly Deep Fuzzing (1-2 hours)**
-- Runs in [nightly-deep-scan.yml](.github/workflows/nightly-deep-scan.yml) against dedicated ephemeral environment
-- Comprehensive API fuzzing (REST, GraphQL endpoints)
-- Property-based testing with hypothesis/schemathesis
-- Mutation-based fuzzing (AFL++, libFuzzer for Python C extensions)
-- Collects crash reports and coverage data
-- Environment automatically torn down after fuzzing
-
-**Benefits:** Discovers edge cases, input validation bugs, crashes, and unexpected behavior that static analysis and scripted DAST cannot find.
-
-**Deployment:** Merging to staging triggers [deploy-staging.yml](.github/workflows/deploy-staging.yml) which immediately deploys to Fly.io staging environment.
-
-**Note:** Falco runtime monitoring would run continuously ON the staging Fly.io environment (not as a GitHub Action workflow)
-
-### 5. Production Branch: Deployment Only (Security Gates Already Passed)
-
-**Trigger:** Merges from `staging` → `main` branch (production)
-
-**Purpose:** Deploy to production immediately - all security gates already passed via nightly-deep-scan.yml requirement.
-
-**Workflow:** [deploy.yml](.github/workflows/deploy.yml)
-
-**Time:** ~1-2 minutes
+**Workflow:** [deploy.yml](.github/workflows/deploy.yml) | **Trigger:** `staging` → `main` merge
 
 **Steps:**
-- **✅ pytest** - Functional test suite validation (~30-60 seconds)
-- **✅ Fly.io deployment** - Deploy to production (~30-60 seconds)
+- **✅ pytest** - Functional tests (~30-60s)
+- **✅ Fly.io deploy** - Production deployment (~30-60s)
 
-**Security Philosophy:**
-- **No redundant security checks** - Branch protection requires nightly-deep-scan.yml to pass before allowing staging → main merge
-- **Trust but verify architecture** - All critical/high security findings already validated by production gate
-- **Fast deployment** - Zero security scan overhead, only functional testing before production push
+**Security Philosophy:** Zero redundant scans. Branch protection **requires nightly-deep-scan.yml to pass** before allowing staging → main merge. All critical/high findings already validated.
 
 **Protection Layers:**
-1. PR to staging: Fast comprehensive checks (pr-fast-checks.yml)
-2. Staging → main: Deep security scan required (nightly-deep-scan.yml) - **MUST PASS**
-3. Main deploy: Functional tests only (deploy.yml)
-  - Human error in merge process
+1. **PR to staging** - Fast checks (pr-fast-checks.yml)
+2. **Staging → main** - Deep scan required (nightly-deep-scan.yml) **MUST PASS**
+3. **Main deploy** - Functional tests only
 
-**SARIF Upload:** Results uploaded to GitHub Security tab with `semgrep-production` category.
+**Future:** SLSA Provenance for supply chain attestation. Provides cryptographic, verifiable proof of how, where, and from what source code an artifact was built, reducing the risk of tampering or unauthorized modifications in the software supply chain. It enables organizations to detect compromised build pipelines, enforce trusted build policies, and strengthen deployment integrity. In short, it converts build trust from implicit to cryptographically verifiable.
 
-#### Supply Chain Attestation ❌ *(planned)*
-- **❌ SLSA Provenance** - Generate cryptographic proof of how the production artifact was built, including source commit, build system, and build steps. GitHub Actions can generate signed provenance JSON attesting that "this production deployment came from staging branch X at commit Y, built by GitHub runner Z". Enables verification that artifacts weren't tampered with and prevents deployment of locally-built artifacts that bypass CI/CD pipeline.
+### 6. Production: Runtime Monitoring ❌ *(planned)*
 
-**Deployment:** If all checks pass, auto-deploy to Fly.io production environment.
+**Falco** - CNCF-graduated eBPF-based runtime threat detection (deployed on Fly.io, not in GitHub Actions):
+- Reverse shells, privilege escalation, crypto mining
+- Unauthorized file access, container escapes
+- Suspicious network connections
 
-### 6. Production Environment: Runtime Monitoring ❌ *(planned)*
-
-**Purpose:** Continuous monitoring of production environment to detect active exploitation attempts and suspicious behavior in real-time.
-
-#### Runtime Threat Detection
-- **❌ Falco** - CNCF-graduated eBPF-based runtime security monitoring deployed ON production Fly.io environment (as sidecar container or VM agent). Monitors kernel-level events in real-time with minimal overhead to detect:
-  - Reverse shell attempts
-  - Privilege escalation
-  - Crypto mining activity
-  - Unauthorized file access
-  - Container escape attempts
-  - Suspicious network connections
-
-**Deployment:** Runs continuously as infrastructure-level monitoring (not a GitHub Action). Alerts integrate with incident response stack (Slack, PagerDuty, CloudWatch).
-
-**Key Difference from DAST:** ZAP (Section 4) actively probes for vulnerabilities in staging. Falco (Section 6) passively monitors for active attacks in production.
+**How it works:** Continuous kernel-level monitoring → alerts to incident response (Slack, PagerDuty).
+**vs. DAST:** ZAP probes for vulnerabilities; Falco detects active exploitation.

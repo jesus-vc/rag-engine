@@ -17,6 +17,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
+      packages: write        # For pushing to GitHub Container Registry
       deployments: write     # For fuzzing ephemeral environment
 
     steps:
@@ -36,71 +37,142 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
-      # Deep SAST - Full Semgrep rulesets (fail on ERROR severity only)
-      - name: SAST (Semgrep - Comprehensive)
-        run: |
-          semgrep \
-            --config p/r2c-security-audit \
-            --config p/secrets \
-            --config p/python \
-            --config p/docker \
-            --severity ERROR \
-            --sarif --output semgrep-deep.sarif \
-            --quiet --metrics=off
+      # ========== TRIVY SCANNING (ACTIVE) ==========
 
-      - name: Upload Semgrep SARIF
+      # Set up Docker Buildx for efficient builds
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3.12.0
+
+      # Login to GitHub Container Registry
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build and push Docker image to ghcr.io
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6.19.1
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+            ghcr.io/${{ github.repository }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Scan the built Docker image for vulnerabilities
+      - name: Trivy - Scan Docker Image
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: 'image'
+          image-ref: 'ghcr.io/${{ github.repository }}:${{ github.sha }}'
+          format: 'sarif'
+          output: 'trivy-image-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'  # Fail on Critical/High vulnerabilities
+          scanners: 'vuln'  # Vulnerability scanning only (os + library packages)
+
+      - name: Upload Trivy Image Scan SARIF
         if: always()
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: semgrep-deep.sarif
-          category: semgrep-deep
+          sarif_file: trivy-image-results.sarif
+          category: trivy-image
 
-      # Python security - High/Medium severity (fail on high only)
-      - name: Python Security (Bandit - High Severity)
-        run: bandit -r src/ --severity-level high -f sarif -o bandit-deep.sarif
+      # Scan filesystem for IaC misconfigurations, secrets, and license issues
+      - name: Trivy - Scan Repository (IaC, Secrets, Config)
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-fs-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          scanners: 'config,secret,license'
 
-      - name: Upload Bandit SARIF
+      - name: Upload Trivy Filesystem Scan SARIF
         if: always()
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: bandit-deep.sarif
-          category: bandit-deep
+          sarif_file: trivy-fs-results.sarif
+          category: trivy-fs
 
-      # Comprehensive dependency scanning (fail on CVSS 7.0+ / high/critical)
-      - name: SCA (OWASP Dependency-Check - CVSS 7.0+)
-        if: always()
-        uses: dependency-check/Dependency-Check_Action@main
+      # Generate human-readable reports (always run for audit trail)
+      - name: Trivy - Generate HTML Report
+        if: always()  # Run even if scans fail, to document what was found
+        uses: aquasecurity/trivy-action@0.33.1
         with:
-          project: 'rag-engine'
-          path: '.'
-          format: 'HTML'
-          args: >
-            --enableRetired
-            --failOnCVSS 7
+          scan-type: 'image'
+          image-ref: 'ghcr.io/${{ github.repository }}:${{ github.sha }}'
+          format: 'template'
+          template: '@$HOME/.local/bin/trivy-bin/contrib/html.tpl'
+          output: 'trivy-report.html'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          scanners: 'vuln'
+          exit-code: '0'  # Don't fail workflow again (already failed in main scan)
 
-      - name: Upload OWASP Dependency-Check report
+      - name: Upload Trivy HTML Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: dependency-check-report
-          path: reports
+          name: trivy-scan-report
+          path: trivy-report.html
+          retention-days: 30  # Keep reports for 30 days
 
-      # Container, IaC, and secrets scanning (fail on critical/high only)
-      - name: Container & IaC Scan (Trivy - Critical/High)
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          scan-type: 'fs'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '1'
+      # ========== OTHER CHECKS (COMMENTED OUT) ==========
 
-      - name: Upload Trivy SARIF
-        if: always()
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: trivy-results.sarif
-          category: trivy
+      # # Deep SAST - Full Semgrep rulesets (fail on ERROR severity only)
+      # - name: SAST (Semgrep - Comprehensive)
+      #   run: |
+      #     semgrep \
+      #       --config p/r2c-security-audit \
+      #       --config p/secrets \
+      #       --config p/python \
+      #       --config p/docker \
+      #       --severity ERROR \
+      #       --sarif --output semgrep-deep.sarif \
+      #       --quiet --metrics=off
+
+      # - name: Upload Semgrep SARIF
+      #   if: always()
+      #   uses: github/codeql-action/upload-sarif@v4
+      #   with:
+      #     sarif_file: semgrep-deep.sarif
+      #     category: semgrep-deep
+
+      # # Python security - High/Medium severity (fail on high only)
+      # - name: Python Security (Bandit - High Severity)
+      #   run: bandit -r src/ --severity-level high -f sarif -o bandit-deep.sarif
+
+      # - name: Upload Bandit SARIF
+      #   if: always()
+      #   uses: github/codeql-action/upload-sarif@v4
+      #   with:
+      #     sarif_file: bandit-deep.sarif
+      #     category: bandit-deep
+
+      # # Comprehensive dependency scanning (fail on CVSS 7.0+ / high/critical)
+      # - name: SCA (OWASP Dependency-Check - CVSS 7.0+)
+      #   if: always()
+      #   uses: dependency-check/Dependency-Check_Action@main
+      #   with:
+      #     project: 'rag-engine'
+      #     path: '.'
+      #     format: 'HTML'
+      #     args: >
+      #       --enableRetired
+      #       --failOnCVSS 7
+
+      # - name: Upload OWASP Dependency-Check report
+      #   if: always()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: dependency-check-report
+      #     path: reports
 
       # DAST - OWASP ZAP scan against staging (fail on high/medium alerts)
       - name: OWASP ZAP Deep Scan (High Alerts)

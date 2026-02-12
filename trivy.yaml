@@ -1,0 +1,46 @@
+# Trivy Configuration File
+# https://aquasecurity.github.io/trivy/latest/docs/references/configuration/config-file/
+
+# Vulnerability scanning settings
+vulnerability:
+  type:
+    - os        # Operating system packages
+    - library   # Application dependencies
+
+# Severity levels to report
+severity:
+  - CRITICAL
+  - HIGH
+  - MEDIUM
+
+# Scanner settings
+scan:
+  # Security checks to perform
+  security-checks:
+    - vuln      # Vulnerabilities
+    - config    # Misconfigurations
+    - secret    # Secrets detection
+    - license   # License scanning
+
+# Output settings
+format: table
+output: ""
+
+# Database settings
+db:
+  skip-update: false  # Always update vulnerability database
+
+# Performance settings
+timeout: 5m
+
+# Ignore unfixed vulnerabilities (set to true if too noisy)
+ignore-unfixed: false
+
+# Filter settings
+# Only show vulnerabilities with available fixes
+# skip-dirs:
+#   - node_modules/
+#   - __pycache__/
+
+# Exit code (0 = success even with findings, 1 = fail on findings)
+exit-code: 0  # Override in CI/CD workflows
