@@ -1,0 +1,17 @@
+# Trivy Ignore File
+# Add CVE IDs or vulnerability IDs to ignore (use sparingly!)
+# Format: CVE-YYYY-NNNNN or GHSA-xxxx-xxxx-xxxx
+#
+# Example usage:
+# CVE-2023-12345  # Brief reason why this is ignored
+#
+# Best practices:
+# 1. Always add a comment explaining WHY a vulnerability is ignored
+# 2. Add an expiration date or review date
+# 3. Link to a tracking issue or ticket
+# 4. Only ignore false positives or accepted risks
+#
+# Example:
+# CVE-2023-99999  # False positive - does not affect our usage (Review: 2026-03-01)
+
+# Add your ignored vulnerabilities below:
