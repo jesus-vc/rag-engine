@@ -11,7 +11,7 @@ on:
 
 jobs:
   deep-security-scan:
-    name: Nightly Deep Security Scan + Fuzzing
+    name: Nightly Deep Security Scan
     runs-on: ubuntu-latest
     timeout-minutes: 150  # 2.5 hours max (30 min security + 2 hours fuzzing)
     permissions:
