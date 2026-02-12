@@ -19,6 +19,7 @@ jobs:
       security-events: write
       packages: write        # For pushing to GitHub Container Registry
       deployments: write     # For fuzzing ephemeral environment
+      issues: write          # For ZAP to auto-create issues for findings
 
     steps:
       - name: Checkout code
