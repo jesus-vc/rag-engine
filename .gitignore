@@ -19,6 +19,10 @@ ENV/
 .env
 .env.local
 
+# Test files with fake secrets (for local pre-commit testing)
+test_file.py
+test_secrets.py
+
 # IDE
 .vscode/
 .idea/

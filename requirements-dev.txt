@@ -1,6 +1,15 @@
-# Development and CI tools
-bandit>=1.7.5
-pip-audit>=2.10.0
-ruff>=0.1.6
+# Development tools - for local use only
+# Note: Most security tools (gitleaks, semgrep, bandit, ruff) are installed
+# automatically by pre-commit in isolated environments. Listed here for
+# manual CLI usage outside of pre-commit hooks and git commits.
+
+# Pre-commit framework
 pre-commit>=3.5.0
+
+# Testing
 pytest>=7.4.0
+
+# Security tools (for manual CLI use)
+bandit==1.7.9
+ruff==0.1.6
+semgrep==1.142.0

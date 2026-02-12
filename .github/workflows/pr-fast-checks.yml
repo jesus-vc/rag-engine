@@ -1,0 +1,85 @@
+name: Fast PR Security Checks
+
+on:
+  pull_request:
+    branches: [ staging ]
+
+jobs:
+  fast-guardrails:
+    name: Fast PR Security Checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Fast secret scanning (~10 seconds)
+      - name: Secrets Scan (Gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        id: python-setup
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install security tools
+        id: install-tools
+        if: steps.python-setup.outcome == 'success'
+        run: |
+          pip install --upgrade pip
+          pip install semgrep bandit ruff
+          pip install -r requirements.txt
+
+      # Fast SAST - high-signal rules only (~30 seconds)
+      - name: SAST (Semgrep high-signal)
+        if: (success() || failure()) && steps.install-tools.outcome == 'success'
+        run: |
+            semgrep \
+                --config p/ci \
+                --severity ERROR \
+                --sarif --output semgrep.sarif \
+                --quiet --metrics=off
+
+      - name: Upload Semgrep SARIF
+        if: always() && hashFiles('semgrep.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+      # Python-specific SAST - high severity only (~15 seconds)
+      - name: Python Security (Bandit)
+        if: (success() || failure()) && steps.install-tools.outcome == 'success'
+        run: |
+            test -d src/
+            bandit -r src/ --severity-level high -f json -o bandit-report.json
+
+      - name: Upload Bandit report
+        if: always() && hashFiles('bandit-report.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit-report.json
+
+      # Fast linting (~5 seconds)
+      - name: Code Quality (Ruff)
+        if: (success() || failure()) && steps.install-tools.outcome == 'success'
+        run: ruff check src/
+
+        # REVIEW IF WORTH ADDING HERE or in nightly-deep-scan.yml
+        # Lightweight fuzzing on new PRs (~5-15 minutes)
+        # - name: Lightweight Fuzzing
+        #   run: |
+        #     # Run lightweight fuzzing against PR changes
+        #     # Focus on new endpoints/functions introduced in this PR
+        #     # Timeout after 10 minutes
+        #   timeout-minutes: 15

@@ -1,0 +1,21 @@
+# .gitleaks.toml
+# Configuration for gitleaks - extends default rules with custom allowlists
+
+# Extend the default gitleaks config (inherits all built-in secret detection rules)
+[extend]
+useDefault = true
+
+# Global allowlists (v8.25.0+ syntax)
+[allowlist]
+description = "Allow test files with fake secrets"
+paths = [
+    '''test_secrets\.py$''',
+    '''test_file\.py$''',
+]
+
+# Example: allowlist specific test token patterns (currently commented out)
+# [[allowlists]]
+# description = "allow specific test token patterns"
+# regexes = [
+#     '''GH_TEST_[0-9A-F]{20}''',
+# ]

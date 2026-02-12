@@ -1,24 +1,50 @@
 repos:
-  # Secret scanning
+  # Secret scanning - Detect hardcoded secrets, API keys, tokens, and credentials
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.18.1
+    rev: v8.24.2
     hooks:
       - id: gitleaks
-  
-  # Security linting
+        # redact - hide secrets in output
+        # no-banner - suppress banner to make faster to read results
+        args: ["--redact", "--no-banner"]
+
+  # SAST - Semgrep - Find security vulnerabilities and code quality issues across languages
+  # Note: Semgrep overlaps with Bandit for Python security BUT provides broader language coverage
+  # and uses different detection patterns. Both are kept for defense in depth.
+  - repo: https://github.com/semgrep/pre-commit
+    rev: v1.142.0  # Updated for Python 3.14 support (Oct 2025)
+    hooks:
+      - id: semgrep
+        entry: semgrep
+        # config - specify the ruleset to use
+        # p/ci - start with high-signal rules for CI, can be expanded to p/best or p/all for more coverage
+        # quiet - suppress non-essential output to focus on findings
+        args: ["--config", "p/ci", "--quiet"]
+
+ # Python security linting - Find common security issues in Python code (SQL injection, hardcoded passwords, etc.)
+  # Note: Bandit overlaps with Semgrep for Python BUT has deeper Python-specific security knowledge
+  # and catches Python-specific anti-patterns (unsafe pickle, weak crypto, etc.). Complementary to Semgrep.
   - repo: https://github.com/PyCQA/bandit
     rev: '1.7.9'
     hooks:
       - id: bandit
-        args: ['-r', 'src/', '--severity-level', 'high']
+        args: ['-r', 'src/', '--severity-level', 'high']  # -r = recursive, high = only critical issues
         additional_dependencies: ['bandit[toml]']
         language_version: python3.11
-        pass_filenames: false  # Don't pass individual files, we're using -r
-  
-  # Code quality and formatting
+        pass_filenames: false  # Scan directory rather than individual files
+
+  # Basic file hygiene - Maintain clean, well-formed files across all file types (not just Python files)
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml # Validate YAML file syntax
+      - id: end-of-file-fixer # Ensure files end with a newline
+      - id: trailing-whitespace # Remove trailing whitespace from files
+
+  # Code quality and formatting - Lint and format Python code for consistency and bug prevention
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.1.6
     hooks:
-      - id: ruff
-        args: ["--fix"]
-      - id: ruff-format
+      - id: ruff  # Fast Python linter (replaces flake8, isort, pylint, etc.)
+        args: ["--fix"]  # Auto-fix issues like unused imports, undefined names
+      - id: ruff-format  # Fast Python formatter (replaces Black)

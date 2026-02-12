@@ -1,5 +1,5 @@
 # Python's standard configuration file that centralizes all project settings
-# in one place instead of scattered config files. 
+# in one place instead of scattered config files.
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
