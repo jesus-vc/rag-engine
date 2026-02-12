@@ -29,28 +29,29 @@ A modular Retrieval-Augmented Generation (RAG) engine designed to power question
 
 ```mermaid
 graph TD
-    A[Local Development] --> B[Pre-commit Hooks ⚡<br/>Gitleaks, Semgrep, Bandit, Ruff<br/>&lt;1 second]
+    A[Local Development] --> B[Pre-commit Hooks ⚡<br/>Gitleaks, Semgrep, Bandit, Ruff<br/>&lt;8 seconds]
     B --> C[Push to GitHub]
     C --> D[Create PR to Staging]
     D --> E[Fast PR Checks ⚡<br/>Secrets, SAST, Linting<br/>~1 minute]
     E -->|Pass| F[Merge to Staging]
     E -->|Fail| D
     F --> G[Auto-Deploy to Staging<br/>No security checks]
-    G --> H[Nightly Deep Scan 🔒<br/>Trivy + ZAP<br/>~20 minutes<br/>PRODUCTION GATE]
+    G --> H[Nightly Deep Scan 🔒<br/>Trivy + ZAP<br/>~20 minutes to 1 hour.<br/>PRODUCTION GATE]
     H -->|Pass| I{Ready for<br/>Production?}
     H -->|Fail| J[Fix Issues]
     J --> D
     I -->|Yes| K[Merge Staging → Main]
     I -->|No| L[Continue Development]
     L --> D
-    K --> M[Production Deploy ⚡<br/>Functional Tests Only<br/>~1-2 minutes]
+    K --> M[Production Deploy ⚡<br/>Functional and Integrity Tests<br/>~Minutes to Hour]
     M --> N[Production Environment]
 
-    style B fill:#90EE90
-    style E fill:#90EE90
-    style H fill:#FFB6C6
-    style M fill:#90EE90
-    style N fill:#87CEEB
+    style B fill:#A8D5BA
+    style E fill:#A8D5BA
+    style H fill:#F4A6A6
+    style M fill:#A8D5BA
+    style N fill:#7FB3D5
+
 ```
 
 **Legend:** ⚡ Fast (<2 min) | 🔒 Deep Scan (Production Gate)
@@ -64,7 +65,7 @@ graph TD
 
 **Result:** Developers stay productive with **single-pass PR checks** while comprehensive security coverage runs nightly as the mandatory production gate.
 
-### 1. Local: Pre-commit Hooks ⚡ (<1 second)
+### 1. Local: Pre-commit Hooks ⚡ (<8 seconds)
 
 **Purpose:** Instant feedback before code enters version control. Configured via [.pre-commit-config.yaml](.pre-commit-config.yaml)
 
@@ -113,7 +114,7 @@ pre-commit run --all-files      # Manual scan of entire codebase
 
 #### 3b. Nightly Deep Scan — **REQUIRED PRODUCTION GATE** ✅
 
-**Workflow:** [nightly-deep-scan.yml](.github/workflows/nightly-deep-scan.yml) | **Time:** ~20 minutes
+**Workflow:** [nightly-deep-scan.yml](.github/workflows/nightly-deep-scan.yml) | **Time:** ~20 minutes to 1 hour.
 
 **Trigger:**
 - **Production gate**: Push to `staging` branch (staging → main merge **BLOCKED** until this passes)
