@@ -11,7 +11,7 @@ on:
 
 jobs:
   deep-security-scan:
-    name: Nightly Deep Security Scan + Fuzzing
+    name: Nightly Deep Security Scan
     runs-on: ubuntu-latest
     timeout-minutes: 150  # 2.5 hours max (30 min security + 2 hours fuzzing)
     permissions:
@@ -19,6 +19,7 @@ jobs:
       security-events: write
       packages: write        # For pushing to GitHub Container Registry
       deployments: write     # For fuzzing ephemeral environment
+      issues: write          # For ZAP to auto-create issues for findings
 
     steps:
       - name: Checkout code
