@@ -18,7 +18,6 @@ COPY src/app ./app
 
 # Security: Create non-root user to prevent container escape vulnerabilities
 # Running as root can allow attackers to gain host access if container is compromised
-# test
 RUN useradd appuser && \
     chown -R appuser:appuser /app
 
