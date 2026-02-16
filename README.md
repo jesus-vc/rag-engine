@@ -1,6 +1,6 @@
 ## Overview
 
-This repository is a starter RAG framework — the architecture is outlined, but the core retrieval and generation components are not yet implemented.
+This repository is a starter RAG engine — the architecture and the core components are not yet implemented.
 
 Phase 1 centers on building a secure, automated CI/CD pipeline that enforces quality and security controls early in development. Once the pipeline foundation is in place, RAG capabilities (ingestion, embeddings, retrieval, LLM orchestration) will be added incrementally.
 
