@@ -48,3 +48,15 @@ repos:
       - id: ruff  # Fast Python linter (replaces flake8, isort, pylint, etc.)
         args: ["--fix"]  # Auto-fix issues like unused imports, undefined names
       - id: ruff-format  # Fast Python formatter (replaces Black)
+
+# SecureAI-Scan - Detect LLM prompt injection and related AI security issues
+  - repo: local
+    hooks:
+      - id: secureai-scan
+        name: SecureAI-Scan
+        entry: npx --yes secureai-scan@latest scan .
+        language: system
+        pass_filenames: false
+        always_run: true
+        verbose: true
+        description: Scan for LLM prompt injection and AI security issues
