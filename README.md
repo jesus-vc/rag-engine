@@ -1,9 +1,3 @@
-## Overview
-
-This repository is a starter RAG engine — the architecture and the core components are not yet implemented.
-
-Phase 1 centers on building a secure, automated CI/CD pipeline that enforces quality and security controls early in development. Once the pipeline foundation is in place, RAG capabilities (ingestion, embeddings, retrieval, LLM orchestration) will be added incrementally.
-
 ## Developer-Friendly Shift-Left Security
 
 Security starts early with fast, meaningful feedback. Lightweight checks run in seconds, while deeper analysis runs outside the main development path. Controls are transparent, automated, and designed to reduce friction—not slow delivery.
